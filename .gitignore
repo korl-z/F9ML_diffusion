@@ -68,7 +68,8 @@ mlruns/
 **/mlruns/
 **/logs/
 **/metrics/
-
+**/lightning_checkpoints/
+lightning_checkpoints/
 
 # Sphinx documentation
 docs/_build/
