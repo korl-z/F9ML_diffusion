@@ -64,6 +64,11 @@ data/interim/
 data/processed/
 models/
 artifacts/
+mlruns/
+**/mlruns/
+**/logs/
+**/metrics/
+
 
 # Sphinx documentation
 docs/_build/
