@@ -3,7 +3,7 @@ data_config:
   data_name: HIGGS
   input_dim: 18
   base_distribution: normal
-  train_split: 0.1
+  train_split: 0.4
   val_split: 0.5
 
   input_processing:

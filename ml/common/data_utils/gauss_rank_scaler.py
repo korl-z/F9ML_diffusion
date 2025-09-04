@@ -177,9 +177,9 @@ if __name__ == "__main__":
     # test
 
     import matplotlib.pyplot as plt
-    import sys 
+    # import sys 
 
-    sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
+    # sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
 
     from ml.custom.higgs.analysis.utils import run_chainer
 

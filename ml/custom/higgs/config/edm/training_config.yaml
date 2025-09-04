@@ -1,7 +1,7 @@
 #training_conifg.yaml
 training_config:
   batch_size: 512
-  max_epochs: 2
+  max_epochs: 20
   early_stop_patience: 6
 
   ema_halflife_kimg: 500

@@ -27,8 +27,8 @@ from process_higgs_dataset import (
     HIGGSFeatureSelector,
     HIGGSNpyProcessor,
 )
-from ml.common.utils.utils import EMACallback, PFEMACallback
-from ml.diffusion.EDM.model import SimpleUNet, TinyUNet
+from ml.common.utils.utils import EMACallback, PFEMACallback, MagnitudeMonitor
+from ml.common.nn.unet import MPTinyUNet
 
 from ml.diffusion.EDM.model import SimpleUNet, TinyUNet
 from ml.diffusion.EDM.lightning_EDM import EDMModule
@@ -121,7 +121,10 @@ def main(cfg: DictConfig) -> None:
 
     network_conf = model_conf["network"]
 
-    model = TinyUNet(network_conf["in_channels"], network_conf["base_channels"], network_conf["time_emb_dim"], network_conf["channel_mults"], network_conf["use_attention_at_level"])
+    # model = TinyUNet(network_conf["in_channels"], network_conf["base_channels"], network_conf["time_emb_dim"], network_conf["channel_mults"], network_conf["use_attention_at_level"])
+
+    model = MPTinyUNet(network_conf["in_channels"], network_conf["base_channels"], network_conf["time_emb_dim"], network_conf["channel_mults"], network_conf["use_attention_at_level"])
+
 
     logging.info("Done model setup.")
     log_num_trainable_params(model, unit="k")
@@ -159,6 +162,8 @@ def main(cfg: DictConfig) -> None:
         verbose=True,
     )
 
+    # mag_monitor_cb = MagnitudeMonitor()
+
     callbacks = [ckpt_cb, lr_cb, ema_cb, tqdm_cb, es_cb]
 
     # initialize mlflow logger
@@ -180,7 +185,7 @@ def main(cfg: DictConfig) -> None:
         logger=mlf_logger,
         callbacks=callbacks,
         enable_progress_bar=bool(experiment_conf["enable_progress_bar"]),
-        gradient_clip_val=1.0,
+        # gradient_clip_val=1.0,
     )
 
     EDM_L_module = EDMModule(

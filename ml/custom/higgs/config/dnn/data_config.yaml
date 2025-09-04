@@ -27,9 +27,7 @@ data_config:
     # scaler_label: 0
 
   dataloader_config:
-    batch_size: 1024
+    batch_size: 512
     num_workers: 0
     pin_memory: False
     drop_last: True
-
-  timesteps_gen: 1000

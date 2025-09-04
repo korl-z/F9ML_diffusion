@@ -75,13 +75,14 @@ def main(cfg):
         "simpleunet_EDM_model",
         "simpleunet_EDM_model",
         "tinyunet_EDM_model",
+        "MPtinyunet_EDM_model",
     ]
-    versions = [18, 18, 11, 13, 3]
+    versions = [18, 18, 11, 13, 3, 3]
 
     model_name = select_models[-1]
     ver = versions[-1]
 
-    N = 16000
+    N = 32000
 
     data_conf["feature_selection"]["n_data"] = 2 * N
 

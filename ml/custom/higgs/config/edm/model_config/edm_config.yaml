@@ -1,12 +1,11 @@
-model_name: tinyunet_EDM
+model_name: MPtinyunet_EDM
 img_shape: [2, 3, 3] #inchannels, w, h
 
 network: 
   in_channels: 2
   time_emb_dim: 64
-  base_channels: 16
+  base_channels: 32
   channel_mults: [1, 2, 2]
-  # num_res_blocks: 2
   use_attention_at_level: [False, False, True]
 
 loss_fn:
@@ -18,6 +17,6 @@ sampler:
   sigma_min: 0.002
   sigma_max: 80.0
   rho: 7.0
-  S_churn: 10 #param for adding stohasticity
+  S_churn: 0 #param for adding stohasticity
 
 test_sample_count: 2048

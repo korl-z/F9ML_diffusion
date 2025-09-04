@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from typing import Optional
 from copy import deepcopy
+import lightning as L
 from lightning.pytorch import Callback
 
 #EMA
@@ -263,7 +264,7 @@ class PowerFunctionEMA:
         for ema, s_ema in zip(self.emas, state['emas']):
             ema.load_state_dict(s_ema)
 
-#modified class to subclass callback, should work with mlflow logger
+#modified class that subclasses Callback, should work with mlflow logger
 class PFEMACallback(Callback):
     def __init__(self, std, batchsize):
         super().__init__()
@@ -281,3 +282,74 @@ class PFEMACallback(Callback):
         with torch.no_grad():
             for p_ema, p_net in zip(pl_module.model_ema.parameters(), pl_module.model.parameters()):
                 p_ema.copy_(p_net.detach().lerp(p_ema, 1 - beta))
+
+import functools # <--- ADD THIS IMPORT
+
+class MagnitudeMonitor(Callback):
+    """
+    A Lightning Callback to monitor and log the L2 norms of weights and activations
+    for specified layers during training.
+    
+    This version uses a picklable hook to be compatible with Lightning's checkpointing.
+    """
+    def __init__(self, layer_prefixes_to_monitor=None):
+        super().__init__()
+        if layer_prefixes_to_monitor is None:
+            self.layer_prefixes = [
+                'conv_in',
+                'bottleneck',
+                'downs.0',
+                'ups.0',
+            ]
+        else:
+            self.layer_prefixes = layer_prefixes_to_monitor
+            
+        self.activations = {}
+        # We store handles in a non-persistent attribute so Lightning doesn't try to pickle them.
+        self._handles = []
+
+    # --- FIX 1: The hook is now a proper method of the class ---
+    def _activation_hook(self, name, module, input, output):
+        """
+        The hook function itself. It's a method, so it can be pickled.
+        'name' is the layer name, pre-filled by functools.partial.
+        """
+        if isinstance(output, torch.Tensor):
+            norm = output.detach().norm(2)
+            dim_weighted_norm = norm / np.sqrt(np.prod(output.shape[1:]))
+            self.activations[name] = dim_weighted_norm.cpu().item()
+
+    def on_train_start(self, trainer, pl_module):
+        """Called when training is about to start."""
+        print("\n[MagnitudeMonitor] Attaching forward hooks to monitor activations...")
+        for name, module in pl_module.model.net.named_modules():
+            for prefix in self.layer_prefixes:
+                if name.startswith(prefix):
+                    # --- FIX 2: Use functools.partial to create a picklable hook closure ---
+                    hook_fn = functools.partial(self._activation_hook, name)
+                    handle = module.register_forward_hook(hook_fn)
+                    self._handles.append(handle)
+        print(f"[MagnitudeMonitor] Attached {len(self._handles)} hooks.")
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        """Called at the end of the validation epoch."""
+        # Log weights (this part was already correct)
+        for name, param in pl_module.model.net.named_parameters():
+            for prefix in self.layer_prefixes:
+                if name.startswith(prefix) and 'weight' in name:
+                    norm = param.detach().norm(2)
+                    dim_weighted_norm = norm / np.sqrt(np.prod(param.shape[1:]))
+                    pl_module.log(f"weight_norm/{name}", dim_weighted_norm, on_step=False, on_epoch=True)
+
+        # Log activations
+        for name, act_norm in self.activations.items():
+            pl_module.log(f"act_norm/{name}", act_norm, on_step=False, on_epoch=True)
+            
+        self.activations = {}
+
+    def on_train_end(self, trainer, pl_module):
+        """Called when training ends."""
+        print("\n[MagnitudeMonitor] Removing forward hooks.")
+        for handle in self._handles:
+            handle.remove()
+        self._handles = [] # Clear the handles

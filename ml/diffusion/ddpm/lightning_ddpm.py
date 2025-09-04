@@ -19,7 +19,6 @@ from ml.diffusion.ddpm.model import NoisePredictorUNet, DDPMPrecond, iDDPMPrecon
 from ml.diffusion.ddpm.diffusers import DiffuserDDPMeps
 from ml.diffusion.ddpm.losses import DDPMLoss, HybridLoss
 from ml.diffusion.ddpm.samplers import SamplerNoise
-from ml.common.utils.utils import EMA
 from ml.common.nn.modules import Module
 from ml.common.data_utils.downloadutils import load_dataset_variables
 from ml.common.utils.plot_utils import add_data_mc_ratio

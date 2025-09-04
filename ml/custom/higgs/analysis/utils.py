@@ -266,74 +266,8 @@ def sample_from_models(model_dct, N, ver=None, chunks=20, resample=None, return_
         return samples, npy_files
     else:
         return samples
-    
-# def sample_from_models(model_dct, N, ver=None, chunks=20, resample=None, return_npy_files=False): #works with ddpm
-#     L.seed_everything(workers=True)
-
-#     if type(N) is not int:
-#         N = int(N)
-
-#     versions = get_versions(ver, model_dct)
-
-#     if resample is None:
-#         resample = 1
-
-#     samples, npy_files = dict(), dict()
-
-#     with torch.no_grad():
-#         for model_name, model_obj in tqdm(model_dct.items(), desc="Running model sampling", leave=False):
-#             samples[model_name], npy_files[model_name] = [], []
-
-#             for i in range(resample):
-#                 if resample == 1 or i == 0:
-#                     npy_file = f"C:/Users/Uporabnik/Documents/IJS-F9/korlz/ml/data/HIGGS/HIGGS_generated_{model_name}{ver}.npy"
-#                 else:
-#                     npy_file = f"C:/Users/Uporabnik/Documents/IJS-F9/korlz/ml/data/HIGGS/HIGGS_generated_{model_name}{ver}_{i}.npy"
-
-#                 npy_files[model_name].append(npy_file)
-
-#                 # ----------------- Check cache -----------------
-#                 if os.path.exists(npy_file):
-#                     cached = np.load(npy_file)
-#                     if len(cached) >= N:
-#                         logging.info(f"Using cached sample {i} for {model_name}.")
-#                         samples[model_name].append(cached[:N, :])
-#                         continue
-#                     else:
-#                         logging.info(f"Cache {npy_file} too small ({len(cached)} vs {N}), resampling.")
-
-#                 # ----------------- Run sampler -----------------
-#                 device = next(model_obj.parameters()).device if hasattr(model_obj, "parameters") else "cpu"
-
-#                 # model could be LightningModule with `.model.sample`
-#                 if hasattr(model_obj, "sample"):
-#                     sampler_callable = model_obj.sample
-#                 elif hasattr(model_obj, "model") and hasattr(model_obj.model, "sample"):
-#                     sampler_callable = model_obj.model.sample
-#                 else:
-#                     raise ValueError(f"Model {model_name} has no .sample() method")
-
-#                 logging.info(f"Sampling {N} events from {model_name} on {device} ...")
-#                 gen = sampler_callable(
-#                     num_samples=N,
-#                     device=device,
-#                     mean_only=False,
-#                 )
-
-#                 if isinstance(gen, torch.Tensor):
-#                     gen_np = gen.detach().cpu().numpy()
-#                 else:
-#                     gen_np = np.asarray(gen)
-
-#                 samples[model_name].append(gen_np)
-
-#                 # cache result
-#                 logging.info(f"Caching sample {i} for {model_name} -> {npy_file}")
-#                 np.save(npy_file, gen_np)
-
-#     return (samples, npy_files) if return_npy_files else samples
-
-
+ 
+ 
 def handle_rescale_type(selection, sample, scalers):
     cont_idx = selection[selection["type"] == "cont"].index
     disc_idx = selection[selection["type"] == "disc"].index

@@ -8,7 +8,8 @@ import numpy as np
 import sys 
 sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
 
-from ml.common.nn.positional_emb import TimeEmbedding
+from ml.common.nn.positional_emb import TimeEmbedding, MPFourier
+from ml.common.nn.unet import normalize, resample, mp_cat, mp_sum, mp_silu, MPConv  #magnitute preserving functions/blocks
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, time_emb_dim):
@@ -101,7 +102,8 @@ class EDMPrecond(nn.Module):
         c_out = sigma_4d * self.sigma_data / (sigma_4d**2 + self.sigma_data**2).sqrt()
         c_in = 1 / (sigma_4d**2 + self.sigma_data**2).sqrt()
         
-        F_x = self.net(c_in * x, sigma_1d, class_labels, augment_labels)
+        # F_x = self.net(c_in * x, sigma_1d, class_labels, augment_labels)
+        F_x = self.net(c_in * x, sigma_1d)
         
         D_x = c_skip * x + c_out * F_x
         return D_x
@@ -179,132 +181,8 @@ class EDMPrecond(nn.Module):
     
 
 # EDM2 model implementation:
-# Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-
-# This work is licensed under a Creative Commons
-# Attribution-NonCommercial-ShareAlike 4.0 International License.
-# You should have received a copy of the license along with this
-# work. If not, see http://creativecommons.org/licenses/by-nc-sa/4.0/
-
-"""Improved diffusion model architecture proposed in the paper
-"Analyzing and Improving the Training Dynamics of Diffusion Models"."""
-from ml.diffusion.EDM.torch_utils import const_like
-
-# ----------------------------------------------------------------------------
-# Normalize given tensor to unit magnitude with respect to the given
-# dimensions. Default = all dimensions except the first.
-
-
-def normalize(x, dim=None, eps=1e-4):
-    if dim is None:
-        dim = list(range(1, x.ndim))
-    norm = torch.linalg.vector_norm(x, dim=dim, keepdim=True, dtype=torch.float32)
-    norm = torch.add(eps, norm, alpha=np.sqrt(norm.numel() / x.numel()))
-    return x / norm.to(x.dtype)
-
-
-# ----------------------------------------------------------------------------
-# Upsample or downsample the given tensor with the given filter,
-# or keep it as is.
-
-
-def resample(x, f=[1, 1], mode="keep"):
-    if mode == "keep":
-        return x
-    f = np.float32(f)
-    assert f.ndim == 1 and len(f) % 2 == 0
-    pad = (len(f) - 1) // 2
-    f = f / f.sum()
-    f = np.outer(f, f)[np.newaxis, np.newaxis, :, :]
-    f = const_like(x, f)
-    c = x.shape[1]
-    if mode == "down":
-        return torch.nn.functional.conv2d(
-            x, f.tile([c, 1, 1, 1]), groups=c, stride=2, padding=(pad,)
-        )
-    assert mode == "up"
-    return torch.nn.functional.conv_transpose2d(
-        x, (f * 4).tile([c, 1, 1, 1]), groups=c, stride=2, padding=(pad,)
-    )
-
-
-# ----------------------------------------------------------------------------
-# Magnitude-preserving SiLU (Equation 81).
-
-
-def mp_silu(x):
-    return torch.nn.functional.silu(x) / 0.596
-
-
-# ----------------------------------------------------------------------------
-# Magnitude-preserving sum (Equation 88).
-
-
-def mp_sum(a, b, t=0.5):
-    return a.lerp(b, t) / np.sqrt((1 - t) ** 2 + t**2)
-
-
-# ----------------------------------------------------------------------------
-# Magnitude-preserving concatenation (Equation 103).
-
-
-def mp_cat(a, b, dim=1, t=0.5):
-    Na = a.shape[dim]
-    Nb = b.shape[dim]
-    C = np.sqrt((Na + Nb) / ((1 - t) ** 2 + t**2))
-    wa = C / np.sqrt(Na) * (1 - t)
-    wb = C / np.sqrt(Nb) * t
-    return torch.cat([wa * a, wb * b], dim=dim)
-
-
-# ----------------------------------------------------------------------------
-# Magnitude-preserving Fourier features (Equation 75).
-
-
-class MPFourier(torch.nn.Module):
-    def __init__(self, num_channels, bandwidth=1):
-        super().__init__()
-        self.register_buffer("freqs", 2 * np.pi * torch.randn(num_channels) * bandwidth)
-        self.register_buffer("phases", 2 * np.pi * torch.rand(num_channels))
-
-    def forward(self, x):
-        y = x.to(torch.float32)
-        y = y.ger(self.freqs.to(torch.float32))
-        y = y + self.phases.to(torch.float32)
-        y = y.cos() * np.sqrt(2)
-        return y.to(x.dtype)
-
-
-# ----------------------------------------------------------------------------
-# Magnitude-preserving convolution or fully-connected layer (Equation 47)
-# with force weight normalization (Equation 66).
-
-
-class MPConv(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, kernel):
-        super().__init__()
-        self.out_channels = out_channels
-        self.weight = torch.nn.Parameter(
-            torch.randn(out_channels, in_channels, *kernel)
-        )
-
-    def forward(self, x, gain=1):
-        w = self.weight.to(torch.float32)
-        if self.training:
-            with torch.no_grad():
-                self.weight.copy_(normalize(w))  # forced weight normalization
-        w = normalize(w)  # traditional weight normalization
-        w = w * (gain / np.sqrt(w[0].numel()))  # magnitude-preserving scaling
-        w = w.to(x.dtype)
-        if w.ndim == 2:
-            return x @ w.t()
-        assert w.ndim == 4
-        return torch.nn.functional.conv2d(x, w, padding=(w.shape[-1] // 2,))
-
-
 # ----------------------------------------------------------------------------
 # U-Net encoder/decoder block with optional self-attention (Figure 21).
-
 
 class Block(torch.nn.Module):
     def __init__(
@@ -672,7 +550,6 @@ class EDMPrecond2(torch.nn.Module):
 
 
 #Tiny unet implementation (no downsampling on 2x3x3 imgs)
-
 class ResnetBlock(nn.Module):
     def __init__(self, in_channels, out_channels, time_emb_dim):
         super().__init__()
