@@ -1,0 +1,20 @@
+training_config:
+  max_epochs: 150
+
+  loss: BCELoss
+  early_stop_patience: 5
+
+  optimizer:
+    name: Adam
+    lr: 5e-4
+    weight_decay: 1e-5
+
+  scheduler:
+    scheduler_name: null
+    interval: step
+    reduce_lr_on_epoch: 1.0
+    scheduler_params:
+      T_0: 642
+      T_mult: 1
+      eta_min: 0
+

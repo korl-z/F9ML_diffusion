@@ -1,0 +1,26 @@
+model_name: unet_EDM2
+
+network:
+  in_channels: 2        # in channels
+  img_resolution: 3     # wxh? no idea
+  label_dim: 0          # no conditional training
+  use_fp16: False 
+  model_channels: 32
+  channel_mult: [1, 2, 2, 2]
+  num_blocks: 2
+  attn_resolutions: [1] # Attention on the smallest "resolution"
+  dropout: 0.10
+  sigma_data: 0.5
+
+loss_fn:
+  P_mean: -0.4
+  P_std: 1.0
+
+sampler:
+  num_steps: 100
+  sigma_min: 0.002
+  sigma_max: 80.0
+  rho: 7.0
+  S_churn: 0 #param for adding stohasticity
+
+test_sample_count: 2048

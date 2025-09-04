@@ -1,0 +1,35 @@
+#data_config.yaml
+data_config:
+  data_name: HIGGS
+  input_dim: 18
+  base_distribution: normal
+  train_split: 0.1
+  val_split: 0.5
+
+  input_processing:
+    data_dir: C:/Users/Uporabnik/Documents/IJS-F9/korlz/ml/data/HIGGS/
+    base_file_name: HIGGS_data
+    shuffle: True
+    keep_ratio: 0.05
+    hold_mode: True
+    use_hold: False
+    hold_ratio: 0.8
+
+  feature_selection:
+    n_data: null
+    drop_types: [uni, disc]
+    drop_names: []
+    keep_names: null
+    on_train: bkg
+
+  preprocessing:
+    cont_rescale_type: gauss_rank
+    disc_rescale_type: null
+    no_process: [label]
+    # scaler_label: 0
+
+  dataloader_config:
+    batch_size: 512
+    num_workers: 0
+    pin_memory: False
+    drop_last: True

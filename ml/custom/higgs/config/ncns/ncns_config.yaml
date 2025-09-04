@@ -1,0 +1,17 @@
+#ddpm_config.yaml
+model_config:
+  model_name: ModularUnet_NCNS
+  in_channels: 3
+  base_channels: 32 
+  num_res_blocks: 2               
+  channel_mults: [1, 1]           
+  use_attention_at_level: [false, true]
+
+  img_shape: [3, 3, 2]
+  #time_emb_dim: 64
+  #timesteps: 1000
+
+  noise_schedule:
+    sigma_start: 1.0 
+    sigma_end: 0.01
+    num_scales: 10

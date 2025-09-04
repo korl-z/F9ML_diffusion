@@ -1,0 +1,40 @@
+#training_conifg.yaml
+training_config:
+  batch_size: 512
+  max_epochs: 20
+  early_stop_patience: 5
+  
+  ema_halflife_kimg: 500
+  ema_rampup_ratio: 0.09
+  std: 0.1  #use with PFEMA
+  
+  compile: False  
+
+  optimizer:
+    name: Adam
+    lr: 5e-4
+    weight_decay: 1e-5
+
+  scheduler:
+    # use: true
+    # scheduler_name: ReduceLROnPlateau
+    # scheduler_params:
+    #   mode: min
+    #   factor: 0.5
+    #   patience: 3
+    #   verbose: true
+    #   threshold: 1e-4
+    # monitor: val_epoch_loss
+    # interval: epoch
+    use: true
+    scheduler_name: CosineAnnealingLR
+    scheduler_params:
+      T_max: 20
+      eta_min: 0.0
+      last_epoch: -1
+      verbose: true
+    monitor: val_epoch_loss
+    interval: epoch
+
+# #num of generated samples
+#   test_sample_count: 8192

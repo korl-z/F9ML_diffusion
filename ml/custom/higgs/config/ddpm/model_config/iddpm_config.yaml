@@ -1,0 +1,13 @@
+#ddpm_config.yaml
+model_name: unet_noise_imp
+
+network:
+  base_dim: 128
+  depth: 3
+  time_emb_dim: 64
+
+diffuser: 
+  timesteps: 1000
+  scheduler: "cosine"
+
+vlb_weight: 1.
