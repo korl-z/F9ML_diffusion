@@ -1,8 +1,4 @@
 import numpy as np
-import sys 
-
-sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
-
 from ml.common.data_utils.data_modules import DataModule, SupervisedDataset
 
 

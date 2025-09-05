@@ -39,9 +39,6 @@ import torch.nn as nn
 import torch 
 import math
 
-import sys 
-sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
-
 from ml.diffusion.score.layers import ResidualBlock, RefineNetBlock, CondInstanceNorm, AdaptiveConvBlock
 
 

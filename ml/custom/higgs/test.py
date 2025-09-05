@@ -8,9 +8,6 @@ import seaborn as sns
 import numpy as np
 import hydra
 from omegaconf import DictConfig
-import sys 
-
-sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
 
 from ml.custom.higgs.analysis.utils import get_model
 

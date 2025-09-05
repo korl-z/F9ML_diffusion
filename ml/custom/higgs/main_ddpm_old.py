@@ -1,7 +1,3 @@
-import sys
-
-sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
-
 import matplotlib.pyplot as plt
 import torch
 import seaborn as sns

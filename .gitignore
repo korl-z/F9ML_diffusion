@@ -62,7 +62,6 @@ data/
 data_raw/
 data/interim/
 data/processed/
-models/
 artifacts/
 mlruns/
 **/mlruns/

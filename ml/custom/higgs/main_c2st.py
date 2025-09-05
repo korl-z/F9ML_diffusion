@@ -1,10 +1,6 @@
 import os
 import time
-import sys
 import logging
-
-sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
-
 import mlflow
 import numpy as np
 from sklearn.metrics import roc_curve, auc

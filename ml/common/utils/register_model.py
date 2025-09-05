@@ -238,10 +238,6 @@ def change_mlruns_path(new_path, mlruns_dir):
 
 
 if __name__ == "__main__":
-    import sys 
-
-    sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
-
     from ml.common.utils.loggers import setup_logger
 
     setup_logger()

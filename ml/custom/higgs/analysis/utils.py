@@ -1,10 +1,6 @@
 import logging
 import os
 from functools import lru_cache
-import sys
-
-sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
-
 import lightning as L
 import matplotlib.pyplot as plt
 import numpy as np

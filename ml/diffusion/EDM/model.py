@@ -4,10 +4,6 @@ import math
 from tqdm import tqdm
 import numpy as np
 
-
-import sys 
-sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
-
 from ml.common.nn.positional_emb import TimeEmbedding, MPFourier
 from ml.common.nn.unet import normalize, resample, mp_cat, mp_sum, mp_silu, MPConv  #magnitute preserving functions/blocks
 

@@ -1,13 +1,8 @@
 import logging
 from pathlib import Path
-
-import sys
 import numpy as np
 import pandas as pd
 from sklearn.utils import shuffle
-
-sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
-
 from ml.common.data_utils.processors import FeatureSelector, NpyProcessor
 from ml.common.data_utils.downloadutils import url_download
 

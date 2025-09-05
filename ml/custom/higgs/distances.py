@@ -1,9 +1,5 @@
 import copy
 import logging
-import sys 
-
-sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
-
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm

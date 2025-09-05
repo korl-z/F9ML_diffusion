@@ -2,9 +2,6 @@ import logging
 import torch
 from typing import Optional, Dict, Any
 
-import sys
-sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
-
 #common imports
 from ml.common.nn.modules import Module
 

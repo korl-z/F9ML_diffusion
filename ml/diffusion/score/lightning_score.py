@@ -1,5 +1,3 @@
-import sys
-import tempfile
 import matplotlib.pyplot as plt
 import numpy as np
 import math
@@ -10,8 +8,6 @@ from typing import Optional, Dict, Any
 import mlflow
 from sklearn import preprocessing
 from lightning.pytorch.callbacks import Callback
-
-sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
 
 from ml.diffusion.score.model import RefineNet, SimpleUNet, ModularUNet
 from ml.diffusion.score.score_matching import score_matching_loss, linear_noise_scale, geometric_noise_scale, maximum_eucl_dist

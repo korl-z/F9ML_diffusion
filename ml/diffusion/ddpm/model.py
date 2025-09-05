@@ -5,10 +5,6 @@ import torch.nn.functional as F
 import math
 from tqdm import tqdm
 from typing import Dict, Optional, Any, List
-
-import sys
-sys.path.insert(1, "C:/Users/Uporabnik/Documents/IJS-F9/korlz")
-
 from ml.common.nn.positional_emb import TimeEmbedding
 from ml.common.nn.modules import Module
 from ml.diffusion.ddpm.samplers import SamplerVar
