@@ -879,7 +879,6 @@ def resample(x, f=[1, 1], mode="keep"):
 # ----------------------------------------------------------------------------
 # Magnitude-preserving SiLU (Equation 81).
 
-
 def mp_silu(x):
     return torch.nn.functional.silu(x) / 0.596
 
@@ -988,7 +987,7 @@ class MPTinyUNet(nn.Module):
 
         # Time Embedding
         self.time_embedding = nn.Sequential(
-            TimeEmbedding(base_channels),
+            MPFourier(base_channels),  #MPFourier <--> TimeEmbedding ?
             nn.Linear(base_channels, time_emb_dim),
             MP_SiLU(),
             nn.Linear(time_emb_dim, time_emb_dim)

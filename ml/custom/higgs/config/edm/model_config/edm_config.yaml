@@ -5,7 +5,7 @@ network:
   in_channels: 2
   time_emb_dim: 64
   base_channels: 32
-  channel_mults: [1, 2, 2]
+  channel_mults: [1, 2, 4]
   use_attention_at_level: [False, False, True]
 
 loss_fn:

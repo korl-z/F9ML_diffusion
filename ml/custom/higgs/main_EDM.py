@@ -26,7 +26,6 @@ from process_higgs_dataset import (
 from ml.common.utils.utils import EMACallback, PFEMACallback, MagnitudeMonitor
 from ml.common.nn.unet import MPTinyUNet
 
-from ml.diffusion.EDM.model import SimpleUNet, TinyUNet
 from ml.diffusion.EDM.lightning_EDM import EDMModule
 
 from ml.common.utils.loggers import timeit, log_num_trainable_params, setup_logger

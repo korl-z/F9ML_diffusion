@@ -81,28 +81,42 @@ class EDMPrecond(nn.Module):
             raise ValueError("'img_shape' missing (channels, height, width).")
         self.img_shape = tuple(img_shape)
         self.n_features = np.prod(self.img_shape)
-    
+
     def forward(self, x, sigma, class_labels=None, augment_labels=None):
         x = x.to(torch.float32)
         
-        sigma = torch.as_tensor(sigma, dtype=torch.float32, device=x.device)
+        sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
 
-        if sigma.ndim == 0:
-            sigma_1d = sigma.expand(x.shape[0])
-        else:
-            sigma_1d = sigma.squeeze()
+        c_skip = self.sigma_data ** 2 / (sigma ** 2 + self.sigma_data ** 2)
+        c_out = sigma * self.sigma_data / (sigma ** 2 + self.sigma_data ** 2).sqrt()
+        c_in = 1 / (self.sigma_data ** 2 + sigma ** 2).sqrt()
+        # c_noise = sigma.log() / 4
         
-        sigma_4d = sigma_1d.view(-1, 1, 1, 1)
-
-        c_skip = self.sigma_data**2 / (sigma_4d**2 + self.sigma_data**2)
-        c_out = sigma_4d * self.sigma_data / (sigma_4d**2 + self.sigma_data**2).sqrt()
-        c_in = 1 / (sigma_4d**2 + self.sigma_data**2).sqrt()
-        
-        # F_x = self.net(c_in * x, sigma_1d, class_labels, augment_labels)
-        F_x = self.net(c_in * x, sigma_1d)
+        F_x = self.net(c_in * x, sigma.flatten(), class_labels, augment_labels)
         
         D_x = c_skip * x + c_out * F_x
         return D_x
+    
+    # def forward(self, x, sigma, class_labels=None, augment_labels=None):
+    #     x = x.to(torch.float32)
+        
+    #     sigma = torch.as_tensor(sigma, dtype=torch.float32, device=x.device)
+
+    #     if sigma.ndim == 0:
+    #         sigma_1d = sigma.expand(x.shape[0])
+    #     else:
+    #         sigma_1d = sigma.squeeze()
+        
+    #     sigma_4d = sigma_1d.view(-1, 1, 1, 1)
+
+    #     c_skip = self.sigma_data**2 / (sigma_4d**2 + self.sigma_data**2)
+    #     c_out = sigma_4d * self.sigma_data / (sigma_4d**2 + self.sigma_data**2).sqrt()
+    #     c_in = 1 / (sigma_4d**2 + self.sigma_data**2).sqrt()
+        
+    #     F_x = self.net(c_in * x, sigma_1d, class_labels, augment_labels)
+        
+    #     D_x = c_skip * x + c_out * F_x
+    #     return D_x
     
     def round_sigma(self, sigma):
         return torch.as_tensor(sigma)
@@ -180,221 +194,221 @@ class EDMPrecond(nn.Module):
 # ----------------------------------------------------------------------------
 # U-Net encoder/decoder block with optional self-attention (Figure 21).
 
-class Block(torch.nn.Module):
-    def __init__(
-        self,
-        in_channels,  # Number of input channels.
-        out_channels,  # Number of output channels.
-        emb_channels,  # Number of embedding channels.
-        flavor="enc",  # Flavor: 'enc' or 'dec'.
-        resample_mode="keep",  # Resampling: 'keep', 'up', or 'down'.
-        resample_filter=[1, 1],  # Resampling filter.
-        attention=False,  # Include self-attention?
-        channels_per_head=64,  # Number of channels per attention head.
-        dropout=0,  # Dropout probability.
-        res_balance=0.3,  # Balance between main branch (0) and residual branch (1).
-        attn_balance=0.3,  # Balance between main branch (0) and self-attention (1).
-        clip_act=256,  # Clip output activations. None = do not clip.
-    ):
-        super().__init__()
-        self.out_channels = out_channels
-        self.flavor = flavor
-        self.resample_filter = resample_filter
-        self.resample_mode = resample_mode
-        self.num_heads = out_channels // channels_per_head if attention else 0
-        self.dropout = dropout
-        self.res_balance = res_balance
-        self.attn_balance = attn_balance
-        self.clip_act = clip_act
-        self.emb_gain = torch.nn.Parameter(torch.zeros([]))
-        self.conv_res0 = MPConv(
-            out_channels if flavor == "enc" else in_channels,
-            out_channels,
-            kernel=[3, 3],
-        )
-        self.emb_linear = MPConv(emb_channels, out_channels, kernel=[])
-        self.conv_res1 = MPConv(out_channels, out_channels, kernel=[3, 3])
-        self.conv_skip = (
-            MPConv(in_channels, out_channels, kernel=[1, 1])
-            if in_channels != out_channels
-            else None
-        )
-        self.attn_qkv = (
-            MPConv(out_channels, out_channels * 3, kernel=[1, 1])
-            if self.num_heads != 0
-            else None
-        )
-        self.attn_proj = (
-            MPConv(out_channels, out_channels, kernel=[1, 1])
-            if self.num_heads != 0
-            else None
-        )
+# class Block(torch.nn.Module):
+#     def __init__(
+#         self,
+#         in_channels,  # Number of input channels.
+#         out_channels,  # Number of output channels.
+#         emb_channels,  # Number of embedding channels.
+#         flavor="enc",  # Flavor: 'enc' or 'dec'.
+#         resample_mode="keep",  # Resampling: 'keep', 'up', or 'down'.
+#         resample_filter=[1, 1],  # Resampling filter.
+#         attention=False,  # Include self-attention?
+#         channels_per_head=64,  # Number of channels per attention head.
+#         dropout=0,  # Dropout probability.
+#         res_balance=0.3,  # Balance between main branch (0) and residual branch (1).
+#         attn_balance=0.3,  # Balance between main branch (0) and self-attention (1).
+#         clip_act=256,  # Clip output activations. None = do not clip.
+#     ):
+#         super().__init__()
+#         self.out_channels = out_channels
+#         self.flavor = flavor
+#         self.resample_filter = resample_filter
+#         self.resample_mode = resample_mode
+#         self.num_heads = out_channels // channels_per_head if attention else 0
+#         self.dropout = dropout
+#         self.res_balance = res_balance
+#         self.attn_balance = attn_balance
+#         self.clip_act = clip_act
+#         self.emb_gain = torch.nn.Parameter(torch.zeros([]))
+#         self.conv_res0 = MPConv(
+#             out_channels if flavor == "enc" else in_channels,
+#             out_channels,
+#             kernel=[3, 3],
+#         )
+#         self.emb_linear = MPConv(emb_channels, out_channels, kernel=[])
+#         self.conv_res1 = MPConv(out_channels, out_channels, kernel=[3, 3])
+#         self.conv_skip = (
+#             MPConv(in_channels, out_channels, kernel=[1, 1])
+#             if in_channels != out_channels
+#             else None
+#         )
+#         self.attn_qkv = (
+#             MPConv(out_channels, out_channels * 3, kernel=[1, 1])
+#             if self.num_heads != 0
+#             else None
+#         )
+#         self.attn_proj = (
+#             MPConv(out_channels, out_channels, kernel=[1, 1])
+#             if self.num_heads != 0
+#             else None
+#         )
 
-    def forward(self, x, emb):
-        # Main branch.
-        x = resample(x, f=self.resample_filter, mode=self.resample_mode)
-        if self.flavor == "enc":
-            if self.conv_skip is not None:
-                x = self.conv_skip(x)
-            x = normalize(x, dim=1)  # pixel norm
+#     def forward(self, x, emb):
+#         # Main branch.
+#         x = resample(x, f=self.resample_filter, mode=self.resample_mode)
+#         if self.flavor == "enc":
+#             if self.conv_skip is not None:
+#                 x = self.conv_skip(x)
+#             x = normalize(x, dim=1)  # pixel norm
 
-        # Residual branch.
-        y = self.conv_res0(mp_silu(x))
-        c = self.emb_linear(emb, gain=self.emb_gain) + 1
-        y = mp_silu(y * c.unsqueeze(2).unsqueeze(3).to(y.dtype))
-        if self.training and self.dropout != 0:
-            y = torch.nn.functional.dropout(y, p=self.dropout)
-        y = self.conv_res1(y)
+#         # Residual branch.
+#         y = self.conv_res0(mp_silu(x))
+#         c = self.emb_linear(emb, gain=self.emb_gain) + 1
+#         y = mp_silu(y * c.unsqueeze(2).unsqueeze(3).to(y.dtype))
+#         if self.training and self.dropout != 0:
+#             y = torch.nn.functional.dropout(y, p=self.dropout)
+#         y = self.conv_res1(y)
 
-        # Connect the branches.
-        if self.flavor == "dec" and self.conv_skip is not None:
-            x = self.conv_skip(x)
-        x = mp_sum(x, y, t=self.res_balance)
+#         # Connect the branches.
+#         if self.flavor == "dec" and self.conv_skip is not None:
+#             x = self.conv_skip(x)
+#         x = mp_sum(x, y, t=self.res_balance)
 
-        # Self-attention.
-        # Note: torch.nn.functional.scaled_dot_product_attention() could be used here,
-        # but we haven't done sufficient testing to verify that it produces identical results.
-        if self.num_heads != 0:
-            y = self.attn_qkv(x)
-            y = y.reshape(y.shape[0], self.num_heads, -1, 3, y.shape[2] * y.shape[3])
-            q, k, v = normalize(y, dim=2).unbind(3)  # pixel norm & split
-            w = torch.einsum("nhcq,nhck->nhqk", q, k / np.sqrt(q.shape[2])).softmax(
-                dim=3
-            )
-            y = torch.einsum("nhqk,nhck->nhcq", w, v)
-            y = self.attn_proj(y.reshape(*x.shape))
-            x = mp_sum(x, y, t=self.attn_balance)
+#         # Self-attention.
+#         # Note: torch.nn.functional.scaled_dot_product_attention() could be used here,
+#         # but we haven't done sufficient testing to verify that it produces identical results.
+#         if self.num_heads != 0:
+#             y = self.attn_qkv(x)
+#             y = y.reshape(y.shape[0], self.num_heads, -1, 3, y.shape[2] * y.shape[3])
+#             q, k, v = normalize(y, dim=2).unbind(3)  # pixel norm & split
+#             w = torch.einsum("nhcq,nhck->nhqk", q, k / np.sqrt(q.shape[2])).softmax(
+#                 dim=3
+#             )
+#             y = torch.einsum("nhqk,nhck->nhcq", w, v)
+#             y = self.attn_proj(y.reshape(*x.shape))
+#             x = mp_sum(x, y, t=self.attn_balance)
 
-        # Clip activations.
-        if self.clip_act is not None:
-            x = x.clip_(-self.clip_act, self.clip_act)
-        return x
+#         # Clip activations.
+#         if self.clip_act is not None:
+#             x = x.clip_(-self.clip_act, self.clip_act)
+#         return x
 
 
 # ----------------------------------------------------------------------------
 # EDM2 U-Net model (Figure 21).
 
 
-class UNet(torch.nn.Module):
-    def __init__(
-        self,
-        img_resolution,  # Image resolution.
-        in_channels,  # Image channels.
-        label_dim,  # Class label dimensionality. 0 = unconditional.
-        model_channels=32,  # Base multiplier for the number of channels.
-        channel_mult=[
-            1,
-            2,
-            4,
-        ],  # Per-resolution multipliers for the number of channels.
-        channel_mult_noise=None,  # Multiplier for noise embedding dimensionality. None = select based on channel_mult.
-        channel_mult_emb=None,  # Multiplier for final embedding dimensionality. None = select based on channel_mult.
-        num_blocks=1,  # Number of residual blocks per resolution.
-        attn_resolutions=[2],  # List of resolutions with self-attention.
-        label_balance=0.5,  # Balance between noise embedding (0) and class embedding (1).
-        concat_balance=0.5,  # Balance between skip connections (0) and main path (1).
-        **block_kwargs,  # Arguments for Block.
-    ):
-        super().__init__()
-        cblock = [model_channels * x for x in channel_mult]
-        cnoise = (
-            model_channels * channel_mult_noise
-            if channel_mult_noise is not None
-            else cblock[0]
-        )
-        cemb = (
-            model_channels * channel_mult_emb
-            if channel_mult_emb is not None
-            else max(cblock)
-        )
-        self.label_balance = label_balance
-        self.concat_balance = concat_balance
-        self.out_gain = torch.nn.Parameter(torch.zeros([]))
+# class UNet(torch.nn.Module):
+#     def __init__(
+#         self,
+#         img_resolution,  # Image resolution.
+#         in_channels,  # Image channels.
+#         label_dim,  # Class label dimensionality. 0 = unconditional.
+#         model_channels=32,  # Base multiplier for the number of channels.
+#         channel_mult=[
+#             1,
+#             2,
+#             4,
+#         ],  # Per-resolution multipliers for the number of channels.
+#         channel_mult_noise=None,  # Multiplier for noise embedding dimensionality. None = select based on channel_mult.
+#         channel_mult_emb=None,  # Multiplier for final embedding dimensionality. None = select based on channel_mult.
+#         num_blocks=1,  # Number of residual blocks per resolution.
+#         attn_resolutions=[2],  # List of resolutions with self-attention.
+#         label_balance=0.5,  # Balance between noise embedding (0) and class embedding (1).
+#         concat_balance=0.5,  # Balance between skip connections (0) and main path (1).
+#         **block_kwargs,  # Arguments for Block.
+#     ):
+#         super().__init__()
+#         cblock = [model_channels * x for x in channel_mult]
+#         cnoise = (
+#             model_channels * channel_mult_noise
+#             if channel_mult_noise is not None
+#             else cblock[0]
+#         )
+#         cemb = (
+#             model_channels * channel_mult_emb
+#             if channel_mult_emb is not None
+#             else max(cblock)
+#         )
+#         self.label_balance = label_balance
+#         self.concat_balance = concat_balance
+#         self.out_gain = torch.nn.Parameter(torch.zeros([]))
 
-        # Embedding.
-        self.emb_fourier = MPFourier(cnoise)
-        self.emb_noise = MPConv(cnoise, cemb, kernel=[])
-        self.emb_label = MPConv(label_dim, cemb, kernel=[]) if label_dim != 0 else None
+#         # Embedding.
+#         self.emb_fourier = MPFourier(cnoise)
+#         self.emb_noise = MPConv(cnoise, cemb, kernel=[])
+#         self.emb_label = MPConv(label_dim, cemb, kernel=[]) if label_dim != 0 else None
 
-        # Encoder.
-        self.enc = torch.nn.ModuleDict()
-        cout = in_channels + 1
-        for level, channels in enumerate(cblock):
-            res = img_resolution >> level
-            if level == 0:
-                cin = cout
-                cout = channels
-                self.enc[f"{res}x{res}_conv"] = MPConv(cin, cout, kernel=[3, 3])
-            else:
-                self.enc[f"{res}x{res}_down"] = Block(
-                    cout, cout, cemb, flavor="enc", resample_mode="down", **block_kwargs
-                )
-            for idx in range(num_blocks):
-                cin = cout
-                cout = channels
-                self.enc[f"{res}x{res}_block{idx}"] = Block(
-                    cin,
-                    cout,
-                    cemb,
-                    flavor="enc",
-                    attention=(res in attn_resolutions),
-                    **block_kwargs,
-                )
+#         # Encoder.
+#         self.enc = torch.nn.ModuleDict()
+#         cout = in_channels + 1
+#         for level, channels in enumerate(cblock):
+#             res = img_resolution >> level
+#             if level == 0:
+#                 cin = cout
+#                 cout = channels
+#                 self.enc[f"{res}x{res}_conv"] = MPConv(cin, cout, kernel=[3, 3])
+#             else:
+#                 self.enc[f"{res}x{res}_down"] = Block(
+#                     cout, cout, cemb, flavor="enc", resample_mode="down", **block_kwargs
+#                 )
+#             for idx in range(num_blocks):
+#                 cin = cout
+#                 cout = channels
+#                 self.enc[f"{res}x{res}_block{idx}"] = Block(
+#                     cin,
+#                     cout,
+#                     cemb,
+#                     flavor="enc",
+#                     attention=(res in attn_resolutions),
+#                     **block_kwargs,
+#                 )
 
-        # Decoder.
-        self.dec = torch.nn.ModuleDict()
-        skips = [block.out_channels for block in self.enc.values()]
-        for level, channels in reversed(list(enumerate(cblock))):
-            res = img_resolution >> level
-            if level == len(cblock) - 1:
-                self.dec[f"{res}x{res}_in0"] = Block(
-                    cout, cout, cemb, flavor="dec", attention=True, **block_kwargs
-                )
-                self.dec[f"{res}x{res}_in1"] = Block(
-                    cout, cout, cemb, flavor="dec", **block_kwargs
-                )
-            else:
-                self.dec[f"{res}x{res}_up"] = Block(
-                    cout, cout, cemb, flavor="dec", resample_mode="up", **block_kwargs
-                )
-            for idx in range(num_blocks + 1):
-                cin = cout + skips.pop()
-                cout = channels
-                self.dec[f"{res}x{res}_block{idx}"] = Block(
-                    cin,
-                    cout,
-                    cemb,
-                    flavor="dec",
-                    attention=(res in attn_resolutions),
-                    **block_kwargs,
-                )
-        self.out_conv = MPConv(cout, in_channels, kernel=[3, 3])
+#         # Decoder.
+#         self.dec = torch.nn.ModuleDict()
+#         skips = [block.out_channels for block in self.enc.values()]
+#         for level, channels in reversed(list(enumerate(cblock))):
+#             res = img_resolution >> level
+#             if level == len(cblock) - 1:
+#                 self.dec[f"{res}x{res}_in0"] = Block(
+#                     cout, cout, cemb, flavor="dec", attention=True, **block_kwargs
+#                 )
+#                 self.dec[f"{res}x{res}_in1"] = Block(
+#                     cout, cout, cemb, flavor="dec", **block_kwargs
+#                 )
+#             else:
+#                 self.dec[f"{res}x{res}_up"] = Block(
+#                     cout, cout, cemb, flavor="dec", resample_mode="up", **block_kwargs
+#                 )
+#             for idx in range(num_blocks + 1):
+#                 cin = cout + skips.pop()
+#                 cout = channels
+#                 self.dec[f"{res}x{res}_block{idx}"] = Block(
+#                     cin,
+#                     cout,
+#                     cemb,
+#                     flavor="dec",
+#                     attention=(res in attn_resolutions),
+#                     **block_kwargs,
+#                 )
+#         self.out_conv = MPConv(cout, in_channels, kernel=[3, 3])
 
-    def forward(self, x, noise_labels, class_labels):
-        # Embedding.
-        emb = self.emb_noise(self.emb_fourier(noise_labels))
-        if self.emb_label is not None:
-            emb = mp_sum(
-                emb,
-                self.emb_label(class_labels * np.sqrt(class_labels.shape[1])),
-                t=self.label_balance,
-            )
-        emb = mp_silu(emb)
+#     def forward(self, x, noise_labels, class_labels):
+#         # Embedding.
+#         emb = self.emb_noise(self.emb_fourier(noise_labels))
+#         if self.emb_label is not None:
+#             emb = mp_sum(
+#                 emb,
+#                 self.emb_label(class_labels * np.sqrt(class_labels.shape[1])),
+#                 t=self.label_balance,
+#             )
+#         emb = mp_silu(emb)
 
-        # Encoder.
-        x = torch.cat([x, torch.ones_like(x[:, :1])], dim=1)
-        skips = []
-        for name, block in self.enc.items():
-            x = block(x) if "conv" in name else block(x, emb)
-            skips.append(x)
+#         # Encoder.
+#         x = torch.cat([x, torch.ones_like(x[:, :1])], dim=1)
+#         skips = []
+#         for name, block in self.enc.items():
+#             x = block(x) if "conv" in name else block(x, emb)
+#             skips.append(x)
 
-        # Decoder.
-        for name, block in self.dec.items():
-            if "block" in name:
-                x = mp_cat(x, skips.pop(), t=self.concat_balance)
-            x = block(x, emb)
-        x = self.out_conv(x, gain=self.out_gain)
-        return x
+#         # Decoder.
+#         for name, block in self.dec.items():
+#             if "block" in name:
+#                 x = mp_cat(x, skips.pop(), t=self.concat_balance)
+#             x = block(x, emb)
+#         x = self.out_conv(x, gain=self.out_gain)
+#         return x
 
 
 # ----------------------------------------------------------------------------
@@ -545,131 +559,131 @@ class EDMPrecond2(torch.nn.Module):
         return np.concatenate(all_samples, axis=0)
 
 
-#Tiny unet implementation (no downsampling on 2x3x3 imgs)
-class ResnetBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, time_emb_dim):
-        super().__init__()
-        self.time_mlp = nn.Sequential(nn.SiLU(), nn.Linear(time_emb_dim, out_channels))
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding='same')
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding='same')
-        self.norm1 = nn.GroupNorm(1, out_channels)
-        self.norm2 = nn.GroupNorm(1, out_channels)
-        self.act = nn.SiLU()
-        self.skip_connection = nn.Conv2d(in_channels, out_channels, kernel_size=1) if in_channels != out_channels else nn.Identity()
+# #Tiny unet implementation (no downsampling on 2x3x3 imgs)
+# class ResnetBlock(nn.Module):
+#     def __init__(self, in_channels, out_channels, time_emb_dim):
+#         super().__init__()
+#         self.time_mlp = nn.Sequential(nn.SiLU(), nn.Linear(time_emb_dim, out_channels))
+#         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding='same')
+#         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding='same')
+#         self.norm1 = nn.GroupNorm(1, out_channels)
+#         self.norm2 = nn.GroupNorm(1, out_channels)
+#         self.act = nn.SiLU()
+#         self.skip_connection = nn.Conv2d(in_channels, out_channels, kernel_size=1) if in_channels != out_channels else nn.Identity()
 
-    def forward(self, x, t_emb):
-        h = self.act(self.norm1(self.conv1(x)))
-        time_cond = self.time_mlp(t_emb).unsqueeze(-1).unsqueeze(-1)
-        h = h + time_cond
-        h = self.act(self.norm2(self.conv2(h)))
-        return h + self.skip_connection(x)
+#     def forward(self, x, t_emb):
+#         h = self.act(self.norm1(self.conv1(x)))
+#         time_cond = self.time_mlp(t_emb).unsqueeze(-1).unsqueeze(-1)
+#         h = h + time_cond
+#         h = self.act(self.norm2(self.conv2(h)))
+#         return h + self.skip_connection(x)
 
-class AttentionBlock(nn.Module):
-    def __init__(self, channels):
-        super().__init__()
-        self.norm = nn.GroupNorm(1, channels)
-        self.qkv = nn.Conv2d(channels, channels * 3, kernel_size=1)
-        self.proj_out = nn.Conv2d(channels, channels, kernel_size=1)
-        self.scale = channels ** -0.5
+# class AttentionBlock(nn.Module):
+#     def __init__(self, channels):
+#         super().__init__()
+#         self.norm = nn.GroupNorm(1, channels)
+#         self.qkv = nn.Conv2d(channels, channels * 3, kernel_size=1)
+#         self.proj_out = nn.Conv2d(channels, channels, kernel_size=1)
+#         self.scale = channels ** -0.5
 
-    def forward(self, x):
-        b, c, h, w = x.shape
-        x_norm = self.norm(x)
-        q, k, v = self.qkv(x_norm).chunk(3, dim=1)
-        q = q.reshape(b, c, h * w).permute(0, 2, 1)
-        k = k.reshape(b, c, h * w)
-        v = v.reshape(b, c, h * w).permute(0, 2, 1)
-        attn = torch.bmm(q, k) * self.scale
-        attn = attn.softmax(dim=-1)
-        out = torch.bmm(attn, v).permute(0, 2, 1).reshape(b, c, h, w)
-        return x + self.proj_out(out)
+#     def forward(self, x):
+#         b, c, h, w = x.shape
+#         x_norm = self.norm(x)
+#         q, k, v = self.qkv(x_norm).chunk(3, dim=1)
+#         q = q.reshape(b, c, h * w).permute(0, 2, 1)
+#         k = k.reshape(b, c, h * w)
+#         v = v.reshape(b, c, h * w).permute(0, 2, 1)
+#         attn = torch.bmm(q, k) * self.scale
+#         attn = attn.softmax(dim=-1)
+#         out = torch.bmm(attn, v).permute(0, 2, 1).reshape(b, c, h, w)
+#         return x + self.proj_out(out)
 
-# --- The New Shape-Preserving U-Net for Tiny Data ---
+# # --- The New Shape-Preserving U-Net for Tiny Data ---
 
-class TinyUNet(nn.Module):
-    """
-    A shape-preserving U-Net for low-dimensional data (e.g., 2-channel, 3x3 'images').
-    It does not use spatial downsampling but follows the U-Net pattern of increasing
-    and decreasing channel depth.
-    """
-    def __init__(self, in_channels=2, base_channels=32, time_emb_dim=32,
-                 channel_mults=[1, 2, 4], use_attention_at_level=[False, True, True]):
-        super().__init__()
-        self.in_channels = in_channels
+# class TinyUNet(nn.Module):
+#     """
+#     A shape-preserving U-Net for low-dimensional data (e.g., 2-channel, 3x3 'images').
+#     It does not use spatial downsampling but follows the U-Net pattern of increasing
+#     and decreasing channel depth.
+#     """
+#     def __init__(self, in_channels=2, base_channels=32, time_emb_dim=32,
+#                  channel_mults=[1, 2, 4], use_attention_at_level=[False, True, True]):
+#         super().__init__()
+#         self.in_channels = in_channels
 
-        # Time Embedding
-        self.time_embedding = nn.Sequential(
-            TimeEmbedding(base_channels),
-            nn.Linear(base_channels, time_emb_dim),
-            nn.SiLU(),
-            nn.Linear(time_emb_dim, time_emb_dim)
-        )
+#         # Time Embedding
+#         self.time_embedding = nn.Sequential(
+#             TimeEmbedding(base_channels),
+#             nn.Linear(base_channels, time_emb_dim),
+#             nn.SiLU(),
+#             nn.Linear(time_emb_dim, time_emb_dim)
+#         )
 
-        # Encoder Path
-        self.conv_in = ResnetBlock(in_channels, base_channels, time_emb_dim)
-        self.downs = nn.ModuleList()
+#         # Encoder Path
+#         self.conv_in = ResnetBlock(in_channels, base_channels, time_emb_dim)
+#         self.downs = nn.ModuleList()
         
-        current_channels = base_channels
-        for i, mult in enumerate(channel_mults):
-            out_channels = base_channels * mult
-            level_blocks = nn.ModuleList([
-                ResnetBlock(current_channels, out_channels, time_emb_dim)
-            ])
-            if use_attention_at_level[i]:
-                level_blocks.append(AttentionBlock(out_channels))
-            self.downs.append(level_blocks)
-            current_channels = out_channels
+#         current_channels = base_channels
+#         for i, mult in enumerate(channel_mults):
+#             out_channels = base_channels * mult
+#             level_blocks = nn.ModuleList([
+#                 ResnetBlock(current_channels, out_channels, time_emb_dim)
+#             ])
+#             if use_attention_at_level[i]:
+#                 level_blocks.append(AttentionBlock(out_channels))
+#             self.downs.append(level_blocks)
+#             current_channels = out_channels
 
-        # Bottleneck
-        self.bottleneck = nn.ModuleList([
-            ResnetBlock(current_channels, current_channels, time_emb_dim),
-            AttentionBlock(current_channels),
-            ResnetBlock(current_channels, current_channels, time_emb_dim)
-        ])
+#         # Bottleneck
+#         self.bottleneck = nn.ModuleList([
+#             ResnetBlock(current_channels, current_channels, time_emb_dim),
+#             AttentionBlock(current_channels),
+#             ResnetBlock(current_channels, current_channels, time_emb_dim)
+#         ])
 
-        # Decoder Path
-        self.ups = nn.ModuleList()
-        for i, mult in reversed(list(enumerate(channel_mults))):
-            out_channels = base_channels * mult
-            skip_channels = base_channels * channel_mults[i]
-            in_ch = current_channels + skip_channels
+#         # Decoder Path
+#         self.ups = nn.ModuleList()
+#         for i, mult in reversed(list(enumerate(channel_mults))):
+#             out_channels = base_channels * mult
+#             skip_channels = base_channels * channel_mults[i]
+#             in_ch = current_channels + skip_channels
             
-            level_blocks = nn.ModuleList()
-            if use_attention_at_level[i]:
-                level_blocks.append(AttentionBlock(in_ch)) # Attention on concatenated features
-            level_blocks.append(ResnetBlock(in_ch, out_channels, time_emb_dim))
+#             level_blocks = nn.ModuleList()
+#             if use_attention_at_level[i]:
+#                 level_blocks.append(AttentionBlock(in_ch)) # Attention on concatenated features
+#             level_blocks.append(ResnetBlock(in_ch, out_channels, time_emb_dim))
 
-            self.ups.append(level_blocks)
-            current_channels = out_channels
+#             self.ups.append(level_blocks)
+#             current_channels = out_channels
 
-        # Output Layer
-        self.conv_out = nn.Sequential(
-            nn.GroupNorm(1, base_channels),
-            nn.SiLU(),
-            nn.Conv2d(base_channels, in_channels, kernel_size=1)
-        )
+#         # Output Layer
+#         self.conv_out = nn.Sequential(
+#             nn.GroupNorm(1, base_channels),
+#             nn.SiLU(),
+#             nn.Conv2d(base_channels, in_channels, kernel_size=1)
+#         )
 
-    def forward(self, x, sigma, class_labels=None, augment_labels=None):
-        t_emb = self.time_embedding(sigma)
+#     def forward(self, x, sigma, class_labels=None, augment_labels=None):
+#         t_emb = self.time_embedding(sigma)
         
-        h = self.conv_in(x, t_emb)
-        skip_connections = [h]
+#         h = self.conv_in(x, t_emb)
+#         skip_connections = [h]
 
-        # Encoder
-        for level_blocks in self.downs:
-            for block in level_blocks:
-                h = block(h, t_emb) if isinstance(block, ResnetBlock) else block(h)
-            skip_connections.append(h)
+#         # Encoder
+#         for level_blocks in self.downs:
+#             for block in level_blocks:
+#                 h = block(h, t_emb) if isinstance(block, ResnetBlock) else block(h)
+#             skip_connections.append(h)
         
-        # Bottleneck
-        for block in self.bottleneck:
-            h = block(h, t_emb) if isinstance(block, ResnetBlock) else block(h)
+#         # Bottleneck
+#         for block in self.bottleneck:
+#             h = block(h, t_emb) if isinstance(block, ResnetBlock) else block(h)
 
-        # Decoder
-        for level_blocks in self.ups:
-            skip = skip_connections.pop()
-            h = torch.cat([h, skip], dim=1)
-            for block in level_blocks:
-                h = block(h, t_emb) if isinstance(block, ResnetBlock) else block(h)
+#         # Decoder
+#         for level_blocks in self.ups:
+#             skip = skip_connections.pop()
+#             h = torch.cat([h, skip], dim=1)
+#             for block in level_blocks:
+#                 h = block(h, t_emb) if isinstance(block, ResnetBlock) else block(h)
         
-        return self.conv_out(h)
+#         return self.conv_out(h)

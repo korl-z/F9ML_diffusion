@@ -133,6 +133,26 @@ def make_beta_schedule(
     else:
         raise ValueError(f"Unknown beta schedule '{name}'")
 
+#LR scheduler
+
+from torch.optim.lr_scheduler import _LRScheduler
+
+class InverseSqrtLR(_LRScheduler):
+    """
+    Inverse square root learning rate scheduler (per epoch):
+        alpha(t) = alpha_ref / sqrt(max(t/t_ref, 1))
+    """
+    def __init__(self, optimizer, t_ref=1, last_epoch=-1, verbose=False):
+        self.t_ref = t_ref
+        super().__init__(optimizer, last_epoch, verbose)
+
+    def get_lr(self):
+        epoch = max(self.last_epoch, 1)
+        factor = 1.0 / math.sqrt(max(epoch / self.t_ref, 1.0))
+        return [base_lr * factor for base_lr in self.base_lrs]
+
+# register it so getattr works
+torch.optim.lr_scheduler.InverseSqrtLR = InverseSqrtLR
 
 class EMACallback(Callback):
     def __init__(self, decay_halflife_kimg=500, rampup_ratio=0.05, batchsize=512):

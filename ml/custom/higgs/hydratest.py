@@ -124,9 +124,8 @@ def main(cfg):
     # model_name = "simpleunet_EDM_model"
     # ver = 17
     model_name = "MPtinyunet_EDM_model"
-    ver = 3
-    N = 32000
-
+    ver = 15
+    N = 1600
 
     # --- Generate data file ---
     file_dir, file_name = get_generated_data(

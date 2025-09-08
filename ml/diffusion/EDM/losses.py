@@ -76,7 +76,8 @@ class EDMLoss:
         loss = weight * ((D_yn - y) ** 2)
         return loss
 
-#Pmean and Pstd to be optimized, defalut values are picke based on the paper EDM2
+#Pmean and Pstd should be optimized, defalut values are picke based on the EDM2 paper
+
 
 class EDM2Loss:
     def __init__(self, P_mean=-0.4, P_std=1.0, sigma_data=0.5):

@@ -1,7 +1,7 @@
 #training_conifg.yaml
 training_config:
   batch_size: 512
-  max_epochs: 20
+  max_epochs: 2
   early_stop_patience: 6
 
   ema_halflife_kimg: 500
@@ -15,24 +15,33 @@ training_config:
     lr: 2e-4
     weight_decay: 1e-5
 
+  # scheduler:
+  #   # use: false
+  #   # use: true
+  #   # scheduler_name: ReduceLROnPlateau
+  #   # scheduler_params:
+  #   #   mode: min
+  #   #   factor: 0.5
+  #   #   patience: 3
+  #   #   verbose: true
+  #   #   threshold: 1e-4
+  #   # monitor: val_epoch_loss
+  #   # interval: epoch
+  #   use: true
+  #   scheduler_name: CosineAnnealingLR
+  #   scheduler_params:
+  #     T_max: 20
+  #     eta_min: 0.0
+  #     last_epoch: -1
+  #     verbose: true
+
   scheduler:
-    # use: false
-    # use: true
-    # scheduler_name: ReduceLROnPlateau
-    # scheduler_params:
-    #   mode: min
-    #   factor: 0.5
-    #   patience: 3
-    #   verbose: true
-    #   threshold: 1e-4
-    # monitor: val_epoch_loss
-    # interval: epoch
     use: true
-    scheduler_name: CosineAnnealingLR
+    scheduler_name: InverseSqrtLR
     scheduler_params:
-      T_max: 20
-      eta_min: 0.0
+      t_ref: 4
       last_epoch: -1
       verbose: true
-    monitor: val_epoch_loss
-    interval: epoch
+
+  monitor: val_epoch_loss
+  interval: epoch
