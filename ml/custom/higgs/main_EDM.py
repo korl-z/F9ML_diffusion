@@ -1,4 +1,3 @@
-import os
 import time
 import logging
 import torch
@@ -96,11 +95,7 @@ def main(cfg: DictConfig) -> None:
 
     pre = Preprocessor(**data_conf["preprocessing"])
 
-    if on_train == "mixed":
-        drop_proc = DropLabelProcessor(drop_labels)
-        chainer = ProcessorChainer(npy_proc, f_sel, pre, drop_proc)
-    else:
-        chainer = ProcessorChainer(npy_proc, f_sel, pre)
+    chainer = ProcessorChainer(npy_proc, f_sel, pre)
 
     dm = HiggsDataModule(
         chainer,

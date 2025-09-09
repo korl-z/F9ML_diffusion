@@ -3,34 +3,12 @@ from typing import Optional, Dict, Any
 import logging
 
 
-from ml.diffusion.ddpm.model import NoisePredictorUNet, DDPMPrecond, iDDPMPrecond
+from ml.diffusion.ddpm.model import NoisePredictorUNet, DDPMPrecond, iDDPMPrecond, iDDPM2Precond
 from ml.diffusion.ddpm.diffusers import DiffuserDDPMeps
-from ml.diffusion.ddpm.losses import DDPMLoss, HybridLoss
+from ml.diffusion.ddpm.losses import DDPMLoss, HybridLoss, iDDPMloss
 from ml.diffusion.ddpm.samplers import SamplerNoise
 from ml.common.nn.modules import Module
-
-
-#temporary list for plotting
-features_list = [
-    "lepton pT",
-    "lepton eta",
-    "missing energy",
-    "jet1 pT",
-    "jet1 eta",
-    "jet2 pT",
-    "jet2 eta",
-    "jet3 pT",
-    "jet3 eta",
-    "jet4 pT",
-    "jet4 eta",
-    "m jj",
-    "m jjj",
-    "m lv",
-    "m jlv",
-    "m bb",
-    "m wbb",
-    "m wwbb",
-]
+from ml.common.nn.unet import MPTinyUNet
 
 
 # class DDPMModule(Module):
@@ -224,3 +202,64 @@ class iDDPMModule(Module):
         x0, _ = batch
         loss = self.loss_fn(self.model, x0)
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=x0.size(0))
+
+
+class iDDPM2Module(Module):
+    """
+    Lightning Module for training an EDM model (Karras et al., 2022).
+    """
+    def __init__(
+        self,
+        datamodule: Any,
+        model_conf: Dict[str, Any],
+        training_conf: Dict[str, Any],
+        data_conf: Optional[Dict[str, Any]] = None,
+        model: Optional[torch.nn.Module] = None, 
+        tracker = None,
+    ):
+        super().__init__(model_conf, training_conf, model, loss_func=None, tracker=None)
+        self.save_hyperparameters(ignore=["model", "tracker"])
+
+        self.datamodule = datamodule
+        self.model_conf = model_conf
+
+        self.IMG_SHAPE = tuple(self.hparams.model_conf["img_shape"])
+
+        # wrapper model, always the same
+        self.model = iDDPM2Precond(
+            model, 
+            img_shape=self.IMG_SHAPE
+        )
+
+        self.loss_fn = iDDPMloss(
+            u_buffer=self.model.u
+        )
+
+        self.model.sampler_cfg = self.hparams.model_conf["sampler"]
+                                                        
+        self._train_losses = []
+        self._val_losses = []
+
+    def training_step(self, batch, batch_idx):
+        x0, _ = batch 
+        x0 = x0.to(self.device)
+        reshaped_x0 = x0.view(-1, *self.IMG_SHAPE)
+
+        loss_tensor = self.loss_fn(self.model, reshaped_x0)
+        loss = loss_tensor.mean()
+
+        self._train_losses.append(loss.detach().cpu().item())
+        self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=x0.size(0))
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x0, _ = batch
+        x0 = x0.to(self.device)
+        reshaped_x0 = x0.view(-1, *self.IMG_SHAPE)
+
+        loss_tensor = self.loss_fn(self.model, reshaped_x0)
+        loss = loss_tensor.mean()
+
+        self._val_losses.append(loss.detach().cpu().item())
+        self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=x0.size(0))
+        return None

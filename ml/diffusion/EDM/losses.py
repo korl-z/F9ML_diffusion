@@ -1,5 +1,5 @@
 import torch
-
+import numpy as np
 # ----------------------------------------------------------------------------
 # Loss function corresponding to the variance preserving (VP) formulation
 # from the paper "Score-Based Generative Modeling through Stochastic
@@ -68,10 +68,15 @@ class EDMLoss:
         rnd_normal = torch.randn([images.shape[0], 1, 1, 1], device=images.device)
         sigma = (rnd_normal * self.P_std + self.P_mean).exp()
         weight = (sigma**2 + self.sigma_data**2) / (sigma * self.sigma_data) ** 2
+
+        weight = torch.clamp(weight, max=1000.0)           
+        weight = weight / (weight.mean(dim=0, keepdim=True) + 1e-12)
+
         y, augment_labels = (
             augment_pipe(images) if augment_pipe is not None else (images, None)
         )
         n = torch.randn_like(y) * sigma
+        # n = (torch.rand_like(y) * 2 - 1) * np.sqrt(3) * sigma #PIT transform
         D_yn = net(y + n, sigma, labels, augment_labels=augment_labels)
         loss = weight * ((D_yn - y) ** 2)
         return loss
@@ -80,16 +85,19 @@ class EDMLoss:
 
 
 class EDM2Loss:
-    def __init__(self, P_mean=-0.4, P_std=1.0, sigma_data=0.5):
+    def __init__(self, P_mean=-0.4, P_std=1.0, sigma_data=0.5, return_logvar=True):
         self.P_mean = P_mean
         self.P_std = P_std
         self.sigma_data = sigma_data
+        self.return_logvar = return_logvar
 
     def __call__(self, net, images, labels=None):
         rnd_normal = torch.randn([images.shape[0], 1, 1, 1], device=images.device)
         sigma = (rnd_normal * self.P_std + self.P_mean).exp()
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
         noise = torch.randn_like(images) * sigma
-        denoised, logvar = net(images + noise, sigma, labels, return_logvar=True)
+        denoised, logvar = net(images + noise, sigma, labels, self.return_logvar)
         loss = (weight / logvar.exp()) * ((denoised - images) ** 2) + logvar
+
         return loss
+

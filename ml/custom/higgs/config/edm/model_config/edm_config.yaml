@@ -3,20 +3,20 @@ img_shape: [2, 3, 3] #inchannels, w, h
 
 network: 
   in_channels: 2
-  time_emb_dim: 64
-  base_channels: 32
-  channel_mults: [1, 2, 4]
-  use_attention_at_level: [False, False, True]
+  time_emb_dim: 32
+  base_channels: 16
+  channel_mults: [1, 2]
+  use_attention_at_level: [False, True]
 
 loss_fn:
-  P_mean: -0.4
-  P_std: 1.0
+  P_mean: -1.2
+  P_std: 1.2
 
 sampler:
   num_steps: 50
   sigma_min: 0.002
   sigma_max: 80.0
   rho: 7.0
-  S_churn: 0 #param for adding stohasticity
+  S_churn: 0 #adds stohasticity if > 0
 
-test_sample_count: 2048
+# test_sample_count: 2048

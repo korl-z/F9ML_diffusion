@@ -23,7 +23,7 @@ data_config:
     on_train: bkg
 
   preprocessing:
-    cont_rescale_type: gauss_rank
+    cont_rescale_type: prob_int
     disc_rescale_type: null
     no_process: [label]
     # scaler_label: 0

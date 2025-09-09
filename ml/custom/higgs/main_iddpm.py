@@ -25,9 +25,9 @@ from process_higgs_dataset import (
 )
 from ml.common.utils.utils import EMACallback
 
-from ml.common.nn.unet import VarPredictorUNet
+from ml.common.nn.unet import VarPredictorUNet, MPTinyUNet
 from ml.diffusion.ddpm.diffusers import DiffuseriDDPMeps
-from ml.diffusion.ddpm.lightning_ddpm import iDDPMModule
+from ml.diffusion.ddpm.lightning_ddpm import iDDPMModule, iDDPM2Module
 
 from ml.common.utils.loggers import timeit, log_num_trainable_params, setup_logger
 from ml.diffusion.trackers import DDPMTracker
@@ -65,7 +65,7 @@ def main(cfg: DictConfig) -> None:
     if experiment_conf["run_name"] is None:
         experiment_conf["run_name"] = time.asctime(time.localtime())
 
-    experiment_name = "iddpm"
+    experiment_name = "iddpm2"
 
     data_conf = cfg.data_config
     model_conf = cfg.model_config
@@ -107,17 +107,20 @@ def main(cfg: DictConfig) -> None:
 
     logging.info(f"Setting up {model_conf['model_name']} model.")
 
-    # setup timesteps, diffuser, model
-    time_steps = int(model_conf["diffuser"]["timesteps"])
+    ## setup timesteps, diffuser, model
+    # time_steps = int(model_conf["diffuser"]["timesteps"])
 
-    diffuser2 = DiffuseriDDPMeps(
-        timesteps=time_steps, scheduler=model_conf["diffuser"]["scheduler"], device=device
-    )
+    # diffuser2 = DiffuseriDDPMeps(
+    #     timesteps=time_steps, scheduler=model_conf["diffuser"]["scheduler"], device=device
+    # )
 
     tracker = DDPMTracker(experiment_conf, tracker_path="ml/custom/higgs/metrics")
 
-    model = VarPredictorUNet(data_dim=data_conf["input_dim"],
-            **model_conf["network"])
+    # model = VarPredictorUNet(data_dim=data_conf["input_dim"],
+    #         **model_conf["network"])
+    network_conf = model_conf["network"]
+
+    model = MPTinyUNet(network_conf["in_channels"], network_conf["base_channels"], network_conf["time_emb_dim"], network_conf["channel_mults"], network_conf["use_attention_at_level"])
 
     logging.info("Done model setup.")
     log_num_trainable_params(model, unit="k")
@@ -176,13 +179,13 @@ def main(cfg: DictConfig) -> None:
         gradient_clip_val=1.0,
     )
 
-    ddpm_L_module = iDDPMModule(
+    ddpm_L_module = iDDPM2Module(
         datamodule=dm,
         model_conf=model_conf,
         training_conf=training_conf,
         data_conf=data_conf,
         model=model,
-        diffuser=diffuser2,
+        # diffuser=diffuser2,
         tracker=tracker,
     )
 
@@ -192,7 +195,7 @@ def main(cfg: DictConfig) -> None:
     # print("logger:", trainer.logger)
     # print("logger._checkpoint_callback exists?", getattr(trainer.logger, "_checkpoint_callback", None))
 
-    model_name = f"{model_conf['model_name']}_ddpm_model"
+    model_name = f"{model_conf['model_name']}_model"
 
     print("Starting training.")
     trainer.fit(ddpm_L_module, dm)

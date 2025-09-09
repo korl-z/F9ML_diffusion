@@ -123,8 +123,8 @@ def main(cfg):
     # pick model name and version
     # model_name = "simpleunet_EDM_model"
     # ver = 17
-    model_name = "MPtinyunet_EDM_model"
-    ver = 15
+    model_name = "MPtinyunet_EDM2_model"
+    ver = 5
     N = 1600
 
     # --- Generate data file ---
@@ -138,6 +138,7 @@ def main(cfg):
     # --- Wrap in GeneratedProcessor ---
     gen_proc = GeneratedProcessor(file_dir, file_name, shuffle=True)
     gen_np, _, _ = gen_proc()
+
     inv_gen = scalers["cont"][0][1].inverse_transform(gen_np[:, idx])
 
     logging.info(f"Loaded dataset from GeneratedProcessor with shape {gen_np.shape}")
@@ -153,10 +154,16 @@ def main(cfg):
 
     for feat_idx in range(D):
         ax = ax_flat[feat_idx]
-        bin_edges = np.histogram_bin_edges(inv_real[:, feat_idx], bins=50)
 
-        real_counts, _ = np.histogram(inv_real[:, feat_idx], bins=bin_edges) 
-        gen_counts, _  = np.histogram(inv_gen[:, feat_idx], bins=bin_edges) 
+        # x = real[:, feat_idx]
+        # y = gen_np[:, feat_idx]
+
+        x = inv_real[:, feat_idx]
+        y = inv_gen[:, feat_idx]
+        bin_edges = np.histogram_bin_edges(x, bins=50)
+
+        real_counts, _ = np.histogram(x, bins=bin_edges) 
+        gen_counts, _  = np.histogram(y, bins=bin_edges) 
 
         sum_real = real_counts.sum()
         sum_gen = gen_counts.sum()
@@ -179,9 +186,9 @@ def main(cfg):
 
 
         import seaborn as sns
-        sns.histplot(inv_real[:, feat_idx], bins=bin_edges, ax=ax, stat="density", color="gray", alpha=0.3, label="real")
+        sns.histplot(x, bins=bin_edges, ax=ax, stat="density", color="gray", alpha=0.3, label="real")
 
-        ax.hist(inv_gen[:, feat_idx], bins=bin_edges, density=True, histtype="step", lw=1.0, color="blue", label="ML")
+        ax.hist(y, bins=bin_edges, density=True, histtype="step", lw=1.0, color="blue", label="ML")
         ax.set_yscale("log")
         ax.legend()
         ax.set_xlabel(features_list[feat_idx])

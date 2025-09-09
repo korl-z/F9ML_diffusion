@@ -266,3 +266,34 @@ class HybridLoss:
         # The final hybrid loss
         # print(f"loss_ratio = {simple_loss / vlb_loss}")
         return simple_loss + self.vlb_weight * vlb_loss
+    
+
+#iDDPM loss (simple) from EDM paper
+
+class iDDPMloss:
+    """
+    Loss function for the iDDPM model as described in the EDM paper framework.
+    """
+    def __init__(self, u_buffer):
+        super().__init__()
+        self.register_buffer('u', u_buffer)
+        self.M = len(self.u) - 1
+
+    def __call__(self, net, images, labels=None, augment_pipe=None):
+        j = torch.randint(0, self.M, (images.shape[0],), device=images.device)
+        sigma = self.u[j].reshape(-1, 1, 1, 1)
+        weight = 1 / (sigma**2)
+        y, augment_labels = (
+            augment_pipe(images) if augment_pipe is not None else (images, None)
+        )
+        n = torch.randn_like(y) * sigma
+        D_yn = net(y + n, sigma, class_labels=labels, augment_labels=augment_labels)
+        loss = weight * ((D_yn - y) ** 2)
+        return loss
+
+    def register_buffer(self, name, tensor):
+        setattr(self, name, tensor)
+
+    def to(self, device):
+        self.u = self.u.to(device)
+        return self

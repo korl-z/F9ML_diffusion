@@ -34,7 +34,7 @@ f9columnar>=0.1.1
 
 # graphs
 torch-geometric==2.5.3
-# pygraphviz==1.13
+pygraphviz==1.13
 pydot==3.0.1
 networkx==3.3
 

@@ -122,9 +122,9 @@ def main(cfg):
     inv_real = scalers["cont"][0][1].inverse_transform(real[:, idx])
     
     #pick model name and version
-    model_name = "unet_noise_imp_ddpm_model"
-    ver = 23
-    N = 2000
+    model_name = "unet_PIT_ddpm_model"
+    ver = 1
+    N = 1000
 
     #Generate data file
     file_dir, file_name = get_generated_data(
@@ -136,6 +136,7 @@ def main(cfg):
     #Wrap in GeneratedProcessor
     gen_proc = GeneratedProcessor(file_dir, file_name, shuffle=True)
     gen_np, _, _ = gen_proc()
+    print(gen_np.shape)
     inv_gen = scalers["cont"][0][1].inverse_transform(gen_np[:, idx])
 
     logging.info(f"Loaded dataset from GeneratedProcessor with shape {gen_np.shape}")

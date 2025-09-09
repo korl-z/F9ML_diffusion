@@ -160,7 +160,7 @@ class iDDPMPrecond(nn.Module):
 # the paper "Improved Denoising Diffusion Probabilistic Models".
 
 
-class iDDPMPrecond(torch.nn.Module):
+class iDDPM2Precond(nn.Module):
     def __init__(self,
         net,                                # Class name of the underlying model.
         C_1             = 0.001,            # Timestep adjustment at low noise levels.
@@ -186,7 +186,7 @@ class iDDPMPrecond(torch.nn.Module):
         self.sigma_min = float(u[M - 1])
         self.sigma_max = float(u[0])
 
-    def forward(self, x, sigma, class_labels=None, **model_kwargs):
+    def forward(self, x, sigma, class_labels=None, augment_labels=None):
         x = x.to(torch.float32)
 
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
@@ -198,7 +198,7 @@ class iDDPMPrecond(torch.nn.Module):
         c_in = 1 / (sigma ** 2 + 1).sqrt()
         c_noise = self.M - 1 - self.round_sigma(sigma, return_index=True).to(torch.float32)
 
-        F_x = self.net((c_in * x).to(dtype), c_noise.flatten(), class_labels=class_labels, **model_kwargs)
+        F_x = self.net((c_in * x).to(dtype), c_noise.flatten(), class_labels=class_labels, augment_labels=augment_labels)
         assert F_x.dtype == dtype
         D_x = c_skip * x + c_out * F_x[:, :self.img_channels].to(torch.float32)
         return D_x
@@ -212,3 +212,55 @@ class iDDPMPrecond(torch.nn.Module):
         index = torch.cdist(sigma.to(self.u.device).to(torch.float32).reshape(1, -1, 1), self.u.reshape(1, -1, 1)).argmin(2)
         result = index if return_index else self.u[index.flatten()].to(sigma.dtype)
         return result.reshape(sigma.shape).to(sigma.device)
+    
+    def _run_sampler(self, latents, sampler_cfg):
+        """Internal helper for running the Euler ODE solver."""
+        num_steps = sampler_cfg["num_steps"]
+        sigma_min = sampler_cfg["sigma_min"]
+        sigma_max = sampler_cfg["sigma_max"]
+
+        # Time step discretization, uses "ti<N" formula in Table 1 for iDDPM.
+        j_max = self.round_sigma(torch.tensor(sigma_max), return_index=True)
+        j_min = self.round_sigma(torch.tensor(sigma_min), return_index=True)
+        j_steps = torch.linspace(j_max, j_min, num_steps + 1, device=latents.device).long()
+        t_steps = self.u[j_steps]
+
+        x_next = latents.to(torch.float64) * t_steps[0]
+
+        # Main sampling loop.
+        for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):
+            x_cur = x_next
+
+            # Euler step.
+            denoised = self(x_cur, t_cur).to(torch.float64)
+            d_cur = (x_cur - denoised) / t_cur
+            x_next = x_cur + (t_next - t_cur) * d_cur
+
+        return x_next
+
+    def sample(self, num_samples: int, chunks: int = 1, **sampler_kwargs):
+        device = next(self.parameters()).device
+        self.eval()
+
+        # Merge default and user-provided sampler settings
+        cfg = {**self.sampler_cfg, **sampler_kwargs}
+
+        chunk_size = math.ceil(num_samples / chunks)
+        all_samples = []
+
+        with torch.no_grad():
+            for _ in tqdm(
+                range(chunks), desc=f"Sampling in {chunks} chunks, using Euler"
+            ):
+                n_to_sample = min(chunk_size, num_samples - len(all_samples))
+                if n_to_sample == 0:
+                    break
+                latents = torch.randn((n_to_sample, *self.img_shape), device=device)
+                samples_reshaped = self._run_sampler(latents, cfg)
+
+                samples_chunk = (
+                    samples_reshaped.view(n_to_sample, self.n_features).cpu().numpy()
+                )
+                all_samples.append(samples_chunk)
+
+        return np.concatenate(all_samples, axis=0)

@@ -15,6 +15,7 @@ from sklearn.preprocessing import (
 from ml.common.data_utils.dequantization import DequantizationTransform
 from ml.common.data_utils.gauss_rank_scaler import GaussRankTransform
 from ml.common.data_utils.logit_transform import LogitTransform
+from ml.common.data_utils.prob_int_transfrom import ProbabilityIntegralTransform
 
 
 def rescale_continuous_data(x, rescale_type, **kwargs):
@@ -106,6 +107,11 @@ def rescale_continuous_data(x, rescale_type, **kwargs):
         scaler = QuantileTransformer(output_distribution="normal", **kwargs).fit(x)
         x_scaled = scaler.transform(x)
         scaler = [("quantile transform", scaler)]
+
+    elif rescale_type == "prob_int":
+        scaler = ProbabilityIntegralTransform(**kwargs)
+        x_scaled = scaler.fit_transform(x)
+        scaler = [("probability integral transform", scaler)]
 
     elif rescale_type in ["none", None]:
         scaler, x_scaled = None, x

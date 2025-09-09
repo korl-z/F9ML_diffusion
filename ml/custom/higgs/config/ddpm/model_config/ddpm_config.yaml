@@ -9,7 +9,7 @@
 #   channel_mults: [1, 2, 2]
 #   use_attention_at_level: [False, False, True]
 
-model_name: unet_noise
+model_name: unet_PIT
 
 network:
   base_dim: 128

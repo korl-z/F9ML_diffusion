@@ -117,6 +117,29 @@ class BasicResMLP(nn.Module):
         return x
 
 
+class DiscriminatorMLP(nn.Module):
+    """
+    A simple MLP discriminator to distinguish between real uniform data
+    and the generator's output.
+
+    Takes flattened data of shape (batch_size, n_features) and outputs
+    a single logit (batch_size, 1).
+    """
+    def __init__(self, n_features, hidden_dim=256):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(n_features, hidden_dim),
+            nn.LeakyReLU(0.2),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.LeakyReLU(0.2),
+            nn.Linear(hidden_dim, 1)
+        )
+
+    def forward(self, x):
+        if x.ndim > 2:
+            x = x.flatten(start_dim=1)
+        return self.net(x)
+    
 if __name__ == "__main__":
     from ml.common.nn.netron_vis import visualize_model
 

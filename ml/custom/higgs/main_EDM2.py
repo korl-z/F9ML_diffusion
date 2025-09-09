@@ -25,8 +25,8 @@ from process_higgs_dataset import (
 )
 from ml.common.utils.utils import EMACallback, PFEMACallback
 
-from ml.diffusion.EDM.model import EDMPrecond2
-from ml.diffusion.EDM.lightning_EDM2 import EDM2Module
+from ml.diffusion.EDM.lightning_EDM import EDM2Module
+from ml.common.nn.unet import MPTinyUNet
 
 from ml.common.utils.loggers import timeit, log_num_trainable_params, setup_logger
 from ml.diffusion.trackers import DDPMTracker
@@ -65,7 +65,7 @@ def main(cfg: DictConfig) -> None:
     if experiment_conf["run_name"] is None:
         experiment_conf["run_name"] = time.asctime(time.localtime())
 
-    experiment_name = "EDM_inital_test"
+    experiment_name = "EDM2_inital_test"
 
     data_conf = cfg.data_config
     model_conf = cfg.model_config
@@ -111,18 +111,15 @@ def main(cfg: DictConfig) -> None:
 
     logging.info(f"Setting up {model_conf['model_name']} model.")
 
-    tracker = DDPMTracker(experiment_conf, tracker_path="ml/custom/higgs/metrics")
+    # tracker = DDPMTracker(experiment_conf, tracker_path="ml/custom/higgs/metrics")
+        
+    network_conf = model_conf["network"]
 
-    EDM2_L_module = EDM2Module(
-        datamodule=dm,
-        model_conf=cfg.model_config,
-        training_conf=cfg.training_config,
-        data_conf=cfg.data_config,
-        tracker=tracker,
-    )
+    model = MPTinyUNet(network_conf["in_channels"], network_conf["base_channels"], network_conf["time_emb_dim"], network_conf["channel_mults"], network_conf["use_attention_at_level"])
+
 
     logging.info("Done model setup.")
-    log_num_trainable_params(EDM2_L_module.model, unit="k")
+    log_num_trainable_params(model, unit="k")
 
     # callbacks
     ckpt_cb = ModelCheckpoint(
@@ -132,7 +129,7 @@ def main(cfg: DictConfig) -> None:
         mode="min",
         verbose=True,
     )
-    
+
     lr_cb = LearningRateMonitor(logging_interval="step")
 
     # ema_cb = EMACallback(decay_halflife_kimg=training_conf["ema_halflife_kimg"],
@@ -179,6 +176,15 @@ def main(cfg: DictConfig) -> None:
         callbacks=callbacks,
         enable_progress_bar=bool(experiment_conf["enable_progress_bar"]),
         # default_root_dir=ckpt_dir_full,
+    )
+
+    EDM2_L_module = EDM2Module(
+        datamodule=dm,
+        model_conf=model_conf,
+        training_conf=training_conf,
+        data_conf=data_conf,
+        model=model, 
+        tracker=None,
     )
 
     model_name = f"{model_conf['model_name']}_model"
