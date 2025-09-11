@@ -4,30 +4,25 @@ import numpy as np
 # Loss function corresponding to the variance preserving (VP) formulation
 # from the paper "Score-Based Generative Modeling through Stochastic
 # Differential Equations".
-
-
 class VPLoss:
     def __init__(self, beta_d=19.9, beta_min=0.1, epsilon_t=1e-5):
-        self.beta_d = beta_d
-        self.beta_min = beta_min
-        self.epsilon_t = epsilon_t
+        self.beta_d = float(beta_d)
+        self.beta_min = float(beta_min)
+        self.epsilon_t = float(epsilon_t)
 
-    def __call__(self, net, images, labels, augment_pipe=None):
-        rnd_uniform = torch.rand([images.shape[0], 1, 1, 1], device=images.device)
-        sigma = self.sigma(1 + rnd_uniform * (self.epsilon_t - 1))
-        weight = 1 / sigma**2
-        y, augment_labels = (
-            augment_pipe(images) if augment_pipe is not None else (images, None)
-        )
+    def __call__(self, net, images, labels=None, augment_pipe=None):
+        rnd = torch.rand([images.shape[0], 1, 1, 1], device=images.device)
+        sigma = self.sigma(1 + rnd * (self.epsilon_t - 1))
+        weight = 1.0 / (sigma ** 2)
+        y, augment_labels = (augment_pipe(images) if augment_pipe is not None else (images, None))
         n = torch.randn_like(y) * sigma
         D_yn = net(y + n, sigma, labels, augment_labels=augment_labels)
         loss = weight * ((D_yn - y) ** 2)
-        return loss
+        return loss.mean()
 
     def sigma(self, t):
         t = torch.as_tensor(t)
-        return ((0.5 * self.beta_d * (t**2) + self.beta_min * t).exp() - 1).sqrt()
-
+        return ((0.5 * self.beta_d * (t ** 2) + self.beta_min * t).exp() - 1).sqrt()
 
 # ----------------------------------------------------------------------------
 # Loss function corresponding to the variance exploding (VE) formulation
@@ -100,4 +95,3 @@ class EDM2Loss:
         loss = (weight / logvar.exp()) * ((denoised - images) ** 2) + logvar
 
         return loss
-
