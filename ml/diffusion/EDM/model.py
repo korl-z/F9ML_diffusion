@@ -357,6 +357,7 @@ class VPPrecond(nn.Module):
         S_noise = sampler_cfg.get("S_noise", 1)
 
         solver = sampler_cfg["solver"]
+        subvp = sampler_cfg["subvp"]
         
         vp_sigma = lambda beta_d, beta_min: lambda t: (np.e ** (0.5 * beta_d * (t ** 2) + beta_min * t) - 1) ** 0.5
         vp_sigma_deriv = lambda beta_d, beta_min: lambda t: 0.5 * (beta_min + beta_d * t) * (sigma(t) + 1 / sigma(t))
@@ -368,7 +369,6 @@ class VPPrecond(nn.Module):
         beta_d = 2 * (np.log(sigma_min ** 2 + 1) / epsilon_s - np.log(sigma_max ** 2 + 1)) / (epsilon_s - 1)
         beta_min = np.log(sigma_max ** 2 + 1) - 0.5 * beta_d
 
-        #create timestep arrays and convert to sigma
         step_indices = torch.arange(num_steps, dtype=torch.float64, device=latents.device)
         t_vals = 1 + step_indices / (num_steps - 1) * (epsilon_s - 1)
         sigma_steps = vp_sigma(beta_d, beta_min)(t_vals)
@@ -400,7 +400,12 @@ class VPPrecond(nn.Module):
             h = t_next - t_hat
             denoised = self(x_hat / s(t_hat), sigma(t_hat), class_labels=None).to(torch.float64)
             d_cur = (sigma_deriv(t_hat) / sigma(t_hat) + s_deriv(t_hat) / s(t_hat)) * x_hat - sigma_deriv(t_hat) * s(t_hat) / sigma(t_hat) * denoised
-            x_prime = x_hat + h * d_cur
+
+            if subvp == True:
+                subvp_scale_cur = (1 - s(t_hat)**4)
+                x_prime = x_hat + h * d_cur * subvp_scale_cur
+            else:
+                x_prime = x_hat + h * d_cur
             t_prime = t_hat + h
 
             # Apply 2nd order correction.
@@ -410,7 +415,12 @@ class VPPrecond(nn.Module):
                 assert solver == 'heun'
                 denoised = self(x_prime / s(t_prime), sigma(t_prime), class_labels=None).to(torch.float64)
                 d_prime = (sigma_deriv(t_prime) / sigma(t_prime) + s_deriv(t_prime) / s(t_prime)) * x_prime - sigma_deriv(t_prime) * s(t_prime) / sigma(t_prime) * denoised
-                x_next = x_hat + h * (0.5 * d_cur + 0.5 * d_prime)
+
+                if subvp == True: 
+                    subvp_scale_prime = (1 - s(t_prime)**4)
+                    x_next = x_hat + h * (0.5 * d_cur + 0.5 * d_prime * subvp_scale_prime)
+                else:
+                    x_next = x_hat + h * (0.5 * d_cur + 0.5 * d_prime)
 
         return x_next
     
