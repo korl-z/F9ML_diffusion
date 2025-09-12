@@ -1,0 +1,24 @@
+model_name: MPtinyunet_VP
+img_shape: [2, 3, 3] #inchannels, w, h
+M: 1000 #number of noise levels for training
+
+network:
+  in_channels: 2
+  time_emb_dim: 16
+  base_channels: 16
+  channel_mults: [1, 2]
+  use_attention_at_level: [False, True]
+
+loss_fn:
+  beta_d: 19.9
+  beta_min: 0.1
+  epsilon_t: 1e-5 #minimum time t\in[eps_t, 1]
+
+sampler:
+  num_steps: 100 #number of sampler steps
+  beta_d: 19.9
+  beta_min: 0.1
+  epsilon_s: 1e-3 #minimum noise level, clips sigma
+  S_churn: 0 #param for adding stohasticity 0=deterministic
+
+  solver: euler

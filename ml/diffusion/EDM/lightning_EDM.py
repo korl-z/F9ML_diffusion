@@ -6,8 +6,8 @@ from typing import Optional, Dict, Any
 from ml.common.nn.modules import Module
 
 # custom imports
-from ml.diffusion.EDM.model import EDMPrecond, EDMPrecond2
-from ml.diffusion.EDM.losses import EDMLoss, EDM2Loss
+from ml.diffusion.EDM.model import EDMPrecond, EDMPrecond2, VPPrecond
+from ml.diffusion.EDM.losses import EDMLoss, EDM2Loss, VPLoss
 
 
 class EDMModule(Module):
@@ -176,81 +176,78 @@ class EDM2Module(Module):
         return None
 
 
-class LightningVP(Module):
+
+class VPModule(Module):
+    """
+    Lightning Module for training VP model (Karras et al., 2022).
+    """
     def __init__(
         self,
+        datamodule: Any,
         model_conf: Dict[str, Any],
         training_conf: Dict[str, Any],
+        data_conf: Optional[Dict[str, Any]] = None,
         model: Optional[torch.nn.Module] = None,
-        loss_func: Optional[object] = None,
-        tracker: Optional[object] = None,
-        split_idx_dct: Optional[Dict[str, Any]] = None,
-        scalers: Optional[object] = None,
-        selection: Optional[object] = None,
+        tracker=None,
     ):
-        super().__init__(
-            model_conf=model_conf,
-            training_conf=training_conf,
-            model=model,
-            loss_func=None,
-            tracker=tracker,
-            split_idx_dct=split_idx_dct,
-            scalers=scalers,
-            selection=selection,
+        super().__init__(model_conf, training_conf, model, loss_func=None, tracker=None)
+        self.save_hyperparameters(ignore=["model", "tracker"])
+
+        self.datamodule = datamodule
+        self.model_conf = model_conf
+
+        loss_cfg = self.model_conf["loss_fn"]
+        self.loss_fn = VPLoss(
+            beta_d=loss_cfg["beta_d"],
+            beta_min=loss_cfg["beta_min"],
+            epsilon_t=loss_cfg["epsilon_t"],
         )
-        if model is None:
-            raise RuntimeError("model required")
-        if loss_func is None:
-            raise RuntimeError("loss_func required")
-        self.model = model
-        self.vp_loss = loss_func
 
-    def forward(self, batch):
-        if isinstance(batch, (list, tuple)):
-            x = batch[0]
-        else:
-            x = batch
-        return self.model(x)
+        self.IMG_SHAPE = tuple(self.hparams.model_conf["img_shape"])
 
-    def _get_loss(self, batch):
-        if isinstance(batch, (list, tuple)):
-            images = batch[0]
-            labels = batch[1] if len(batch) > 1 else None
-        else:
-            images = batch
-            labels = None
-        loss = self.vp_loss(self.model, images, labels)
-        return loss
+        # wrapper model, always the same
+        self.model = VPPrecond(
+            model, img_shape=self.IMG_SHAPE, M=self.model_conf["M"]
+        )
 
-    def training_step(self, batch, *args):
-        loss = self._get_loss(batch)
+        self.model.sampler_cfg = self.hparams.model_conf["sampler"]
+
+        self._train_losses = []
+        self._val_losses = []
+
+    def training_step(self, batch, batch_idx):
+        x0, _ = batch
+        # x0 = x0.to(self.device) #not needed?
+        reshaped_x0 = x0.view(-1, *self.IMG_SHAPE)
+        loss_tensor = self.loss_fn(self.model, reshaped_x0)
+        loss = loss_tensor.mean()
+
+        self._train_losses.append(loss.detach().cpu().item())
         self.log(
             "train_loss",
             loss,
-            batch_size=(
-                batch[0].size(0) if isinstance(batch, (list, tuple)) else batch.size(0)
-            ),
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            batch_size=x0.size(0),
         )
         return loss
 
-    def validation_step(self, batch, *args):
-        loss = self._get_loss(batch)
+    def validation_step(self, batch, batch_idx):
+        x0, _ = batch
+        # x0 = x0.to(self.device) #not needed?
+        reshaped_x0 = x0.view(-1, *self.IMG_SHAPE)
+
+        loss_tensor = self.loss_fn(self.model, reshaped_x0)
+        loss = loss_tensor.mean()
+
+        self._val_losses.append(loss.detach().cpu().item())
         self.log(
             "val_loss",
             loss,
-            batch_size=(
-                batch[0].size(0) if isinstance(batch, (list, tuple)) else batch.size(0)
-            ),
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            batch_size=x0.size(0),
         )
-        return loss
-
-    def test_step(self, batch, *args):
-        loss = self._get_loss(batch)
-        self.log(
-            "test_loss",
-            loss,
-            batch_size=(
-                batch[0].size(0) if isinstance(batch, (list, tuple)) else batch.size(0)
-            ),
-        )
-        return loss
+        return None

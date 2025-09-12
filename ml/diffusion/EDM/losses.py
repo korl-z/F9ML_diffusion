@@ -6,9 +6,9 @@ import numpy as np
 # Differential Equations".
 class VPLoss:
     def __init__(self, beta_d=19.9, beta_min=0.1, epsilon_t=1e-5):
-        self.beta_d = float(beta_d)
-        self.beta_min = float(beta_min)
-        self.epsilon_t = float(epsilon_t)
+        self.beta_d = beta_d
+        self.beta_min = beta_min
+        self.epsilon_t = epsilon_t
 
     def __call__(self, net, images, labels=None, augment_pipe=None):
         rnd = torch.rand([images.shape[0], 1, 1, 1], device=images.device)
@@ -18,7 +18,7 @@ class VPLoss:
         n = torch.randn_like(y) * sigma
         D_yn = net(y + n, sigma, labels, augment_labels=augment_labels)
         loss = weight * ((D_yn - y) ** 2)
-        return loss.mean()
+        return loss
 
     def sigma(self, t):
         t = torch.as_tensor(t)

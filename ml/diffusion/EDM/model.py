@@ -178,7 +178,7 @@ class EDMPrecond2(torch.nn.Module):
         self,
         net,
         img_shape=None, # (num_channels, h, w)
-        sigma_data=0.5,  # Expected standard deviation of the training data.
+        sigma_data=0.7,  # Expected standard deviation of the training data.
         logvar_channels=32,  # Intermediate dimensionality for uncertainty estimation.
     ):      
         super().__init__()
@@ -203,7 +203,7 @@ class EDMPrecond2(torch.nn.Module):
         x = x.to(torch.float32)
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
 
-        dtype = torch.float
+        dtype = torch.float32
 
         # Preconditioning weights.
         c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
@@ -227,7 +227,7 @@ class EDMPrecond2(torch.nn.Module):
     def round_sigma(self, sigma):
         return torch.as_tensor(sigma)
 
-    def _run_sampler(self, latents, sampler_cfg, randn_like=torch.randn_like):
+    def _run_sampler(self, latents, sampler_cfg):
         """Internal helper sampler, stolen form Karras 2022"""
         num_steps = sampler_cfg["num_steps"]
         sigma_min = sampler_cfg["sigma_min"]
@@ -251,7 +251,7 @@ class EDMPrecond2(torch.nn.Module):
             # Increase noise temporarily
             gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
             t_hat = self.round_sigma(t_cur + gamma * t_cur)
-            x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
+            x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * torch.randn_like(x_cur)
 
             # Euler step.
             denoised = self(x_hat, t_hat, return_logvar=False).to(torch.float64)
@@ -302,113 +302,138 @@ class EDMPrecond2(torch.nn.Module):
 class VPPrecond(nn.Module):
     def __init__(
         self,
-        img_resolution: int,
-        img_channels: int,
-        data_dim: int = None,
-        channels: int = 2,
-        height: int = 3,
-        width: int = 3,
-        label_dim: int = 0,
-        use_fp16: bool = False,
-        beta_d: float = 19.9,
-        beta_min: float = 0.1,
+        net, 
+        img_shape=None, # (num_channels, h, w)
         M: int = 1000,
-        epsilon_t: float = 1e-5,
-        net = None,
-        **model_kwargs,
     ):
         super().__init__()
-        self.img_resolution = img_resolution
-        self.img_channels = img_channels
-        self.label_dim = label_dim
-        self.use_fp16 = use_fp16
-        self.beta_d = float(beta_d)
-        self.beta_min = float(beta_min)
-        self.M = int(M)
-        self.epsilon_t = float(epsilon_t)
+        self.net = net
+        self.img_shape = tuple(img_shape)
+        self.n_features = np.prod(self.img_shape)
+        self.M = M
 
-        self.channels = channels
-        self.height = height
-        self.width = width
-        self.data_dim = int(data_dim) if data_dim is not None else (self.channels * self.height * self.width)
+    def forward(
+            self, 
+            x, 
+            sigma,
+            class_labels=None,
+            augment_labels=None,
+    ):
+        x = x.to(torch.float32)
+        sigma_t = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
 
-        self.sigma_min = float(self.sigma(self.epsilon_t))
-        self.sigma_max = float(self.sigma(1.0))
-        self.model = net
+        dtype = torch.float32
 
-    def sigma(self, t):
-        t = torch.as_tensor(t)
-        return ((0.5 * self.beta_d * (t ** 2) + self.beta_min * t).exp() - 1).sqrt()
+        vp_beta_d = getattr(self, 'sampler_cfg', {}).get('beta_d', 19.9)
+        vp_beta_min = getattr(self, 'sampler_cfg', {}).get('beta_min', 0.1)
 
-    def sigma_inv(self, sigma):
-        sigma = torch.as_tensor(sigma)
-        return ((self.beta_min ** 2 + 2 * self.beta_d * (1 + sigma ** 2).log()).sqrt() - self.beta_min) / self.beta_d
+        # local helpers
+        vp_sigma_inv = lambda beta_d, beta_min: lambda sigma: ((beta_min ** 2 + 2 * beta_d * (sigma ** 2 + 1).log()).sqrt() - beta_min) / beta_d
+        sigma_inv = vp_sigma_inv(vp_beta_d, vp_beta_min)
 
-    def forward(self, x, sigma, class_labels=None, force_fp32=False, **model_kwargs):
-        is_flat = (x.dim() == 2)
-        B = x.shape[0]
-        if is_flat:
-            x_img = x.view(B, self.channels, self.height, self.width)
-        else:
-            x_img = x
-
-        sigma_t = torch.as_tensor(sigma, device=x_img.device).to(torch.float32)
-        if sigma_t.dim() == 0:
-            sigma_t = sigma_t.expand(B)
-        if sigma_t.dim() == 1:
-            sigma_t = sigma_t.reshape(-1, 1, 1, 1)
-
-        class_labels = None if self.label_dim == 0 else (torch.zeros([B, self.label_dim], device=x_img.device) if class_labels is None else class_labels.to(torch.float32).reshape(-1, self.label_dim))
-
-        dtype = torch.float16 if (self.use_fp16 and not force_fp32 and x_img.device.type == "cuda") else torch.float32
-
+        #precond weights
         c_skip = 1.0
         c_out = -sigma_t
         c_in = 1.0 / (sigma_t ** 2 + 1.0).sqrt()
-        c_noise = (self.M - 1) * self.sigma_inv(sigma_t)
+        c_noise = (self.M - 1) * sigma_inv(sigma_t)
 
-        F_x = self.model((c_in * x_img).to(dtype), c_noise.flatten(), class_labels=class_labels, **model_kwargs)
-        D_x = c_skip * x_img + c_out * F_x.to(torch.float32)
-
-        return D_x.view(B, -1) if is_flat else D_x
+        F_x = self.net((c_in * x).to(dtype), c_noise.flatten(), class_labels, augment_labels)
+        D_x = c_skip * x + c_out * F_x.to(torch.float32)
+        return D_x
+    
+    def round_sigma(self, sigma):
+        return torch.as_tensor(sigma)
 
     @torch.no_grad()
-    def _run_sampler(self, latents: torch.Tensor, steps: int = 100, mean_only: bool = False):
-        device = latents.device
-        B = latents.shape[0]
-        x = latents.view(B, self.channels, self.height, self.width).to(device)
+    def _run_sampler(self, latents, sampler_cfg):
+        num_steps = sampler_cfg["num_steps"]
+        vp_beta_d = sampler_cfg["beta_d"]
+        vp_beta_min = sampler_cfg["beta_min"]
+        epsilon_s = sampler_cfg["epsilon_s"]
 
-        t_vals = torch.linspace(self.sigma_max, self.sigma_min, steps, device=device)
-        for i in range(steps - 1):
-            t = t_vals[i]
-            t_next = t_vals[i + 1]
-            sigma_t = torch.full((B,), t, device=device)
-            sigma_t_img = sigma_t.reshape(-1, 1, 1, 1)
-            D = self.forward(x, sigma_t_img)
-            dxdt = (x - D) / (t if t != 0.0 else 1e-12)
-            dt = (t_next - t)
-            x = x + dxdt * dt
-        t_last = t_vals[-1]
-        sigma_last = torch.full((B,), t_last, device=device).reshape(-1, 1, 1, 1)
-        D_last = self.forward(x, sigma_last)
-        dxdt_last = (x - D_last) / (t_last if t_last != 0.0 else 1e-12)
-        x = x + dxdt_last * (0.0 - t_last)
-        return x.view(B, -1)
+        S_churn = sampler_cfg.get("S_churn", 0)
+        S_min = sampler_cfg.get("S_min", 0)
+        S_max = sampler_cfg.get("S_max", float("inf"))
+        S_noise = sampler_cfg.get("S_noise", 1)
 
-    def sample(self, num_samples: int, chunks: int = 20, steps: int = 100):
-        device = next(self.model.parameters()).device
+        solver = sampler_cfg["solver"]
+        
+        vp_sigma = lambda beta_d, beta_min: lambda t: (np.e ** (0.5 * beta_d * (t ** 2) + beta_min * t) - 1) ** 0.5
+        vp_sigma_deriv = lambda beta_d, beta_min: lambda t: 0.5 * (beta_min + beta_d * t) * (sigma(t) + 1 / sigma(t))
+        vp_sigma_inv = lambda beta_d, beta_min: lambda sigma: ((beta_min ** 2 + 2 * beta_d * (sigma ** 2 + 1).log()).sqrt() - beta_min) / beta_d
+
+        sigma_min = vp_sigma(vp_beta_d, vp_beta_min)(t=epsilon_s)
+        sigma_max = vp_sigma(vp_beta_d, vp_beta_min)(t=1)
+
+        beta_d = 2 * (np.log(sigma_min ** 2 + 1) / epsilon_s - np.log(sigma_max ** 2 + 1)) / (epsilon_s - 1)
+        beta_min = np.log(sigma_max ** 2 + 1) - 0.5 * beta_d
+
+        step_indices = torch.arange(num_steps, dtype=torch.float64, device=latents.device)
+        t_vals = 1 + step_indices / (num_steps - 1) * (epsilon_s - 1)
+        sigma_steps = vp_sigma(beta_d, beta_min)(t_vals)
+
+        #define schedule
+        sigma = vp_sigma(beta_d, beta_min)
+        sigma_deriv = vp_sigma_deriv(beta_d, beta_min)
+        sigma_inv = vp_sigma_inv(beta_d, beta_min)
+
+        #define scaling schedule.
+        s = lambda t: 1 / (1 + sigma(t) ** 2).sqrt()
+        s_deriv = lambda t: -sigma(t) * sigma_deriv(t) * (s(t) ** 3)
+
+        # Compute final time steps based on the corresponding noise levels.
+        t_steps = sigma_inv(self.round_sigma(sigma_steps))
+        t_steps = torch.cat([t_steps, torch.zeros_like(t_steps[:1])]) # t_N = 0
+
+        t_next = t_steps[0]
+        x_next = latents.to(torch.float64) * (sigma(t_next) * s(t_next))
+        for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])): # 0, ..., N-1
+            x_cur = x_next
+
+            # Increase noise temporarily.
+            gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= sigma(t_cur) <= S_max else 0
+            t_hat = sigma_inv(self.round_sigma(sigma(t_cur) + gamma * sigma(t_cur)))
+            x_hat = s(t_hat) / s(t_cur) * x_cur + (sigma(t_hat) ** 2 - sigma(t_cur) ** 2).clip(min=0).sqrt() * s(t_hat) * S_noise * torch.randn_like(x_cur)
+
+            # Euler step.
+            h = t_next - t_hat
+            denoised = self(x_hat / s(t_hat), sigma(t_hat), class_labels=None).to(torch.float64)
+            d_cur = (sigma_deriv(t_hat) / sigma(t_hat) + s_deriv(t_hat) / s(t_hat)) * x_hat - sigma_deriv(t_hat) * s(t_hat) / sigma(t_hat) * denoised
+            x_prime = x_hat + h * d_cur
+            t_prime = t_hat + h
+
+            # Apply 2nd order correction.
+            if solver == 'euler' or i == num_steps - 1:
+                x_next = x_hat + h * d_cur
+            else:
+                assert solver == 'heun'
+                denoised = self(x_prime / s(t_prime), sigma(t_prime), class_labels=None).to(torch.float64)
+                d_prime = (sigma_deriv(t_prime) / sigma(t_prime) + s_deriv(t_prime) / s(t_prime)) * x_prime - sigma_deriv(t_prime) * s(t_prime) / sigma(t_prime) * denoised
+                x_next = x_hat + h * (0.5 * d_cur + 0.5 * d_prime)
+
+        return x_next
+    
+    def sample(self, num_samples: int, chunks: int = 20, **sampler_kwargs):
+        device = next(self.parameters()).device
         self.eval()
+
+        sampler_cfg = {**self.sampler_cfg, **sampler_kwargs}
         chunk_size = math.ceil(num_samples / chunks)
-        out = []
-        taken = 0
-        for _ in tqdm(range(chunks), desc="Sampling", leave=False):
-            n = min(chunk_size, num_samples - taken)
-            if n <= 0:
-                break
-            latents = torch.randn((n, self.data_dim), device=device)
-            samples = self._run_sampler(latents, steps=steps)
-            out.append(samples.cpu().numpy())
-            taken += n
-        if not out:
-            return np.zeros((0, self.data_dim))
-        return np.concatenate(out, axis=0)
+        all_samples = []
+
+        with torch.no_grad():
+            for _ in tqdm(
+                range(chunks), desc=f"Sampling in {chunks} chunks, using {sampler_cfg["solver"]} ODE solver"
+            ):
+                n_to_sample = min(chunk_size, num_samples - len(all_samples))
+                if n_to_sample == 0:
+                    break
+                latents = torch.randn((n_to_sample, *self.img_shape), device=device)
+                samples_reshaped = self._run_sampler(latents, sampler_cfg)
+
+                samples_chunk = (
+                    samples_reshaped.view(n_to_sample, self.n_features).cpu().numpy()
+                )
+                all_samples.append(samples_chunk)
+
+        return np.concatenate(all_samples, axis=0)

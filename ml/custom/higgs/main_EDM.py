@@ -25,7 +25,7 @@ from process_higgs_dataset import (
 from ml.common.utils.utils import EMACallback, PFEMACallback, MagnitudeMonitor
 from ml.common.nn.unet import MPTinyUNet
 
-from ml.diffusion.EDM.lightning_EDM import EDMModule
+from ml.diffusion.EDM.lightning_EDM import EDMModule, VPModule
 
 from ml.common.utils.loggers import timeit, log_num_trainable_params, setup_logger
 from ml.diffusion.trackers import DDPMTracker
@@ -136,7 +136,7 @@ def main(cfg: DictConfig) -> None:
     # )
 
     ema_cb = PFEMACallback(std=training_conf["std"],
-        batchsize=training_conf["batch_size"],
+        batchsize=data_conf["dataloader_config"]["batch_size"],
     )
 
     tqdm_cb = (
@@ -166,19 +166,27 @@ def main(cfg: DictConfig) -> None:
 
     trainer = L.Trainer(
         max_epochs=int(training_conf["max_epochs"]),
-        accelerator=str(experiment_conf["accelerator"]),
-        devices=int(experiment_conf["devices"]),
+        accelerator=experiment_conf["accelerator"],
+        devices=experiment_conf["devices"],
         check_val_every_n_epoch=experiment_conf["check_eval_n_epoch"],
         log_every_n_steps=experiment_conf["log_every_n_steps"],
         num_sanity_val_steps=experiment_conf["num_sanity_val_steps"],
-        precision=int(experiment_conf["precision"]),
+        precision=experiment_conf["precision"],
         logger=mlf_logger,
         callbacks=callbacks,
         enable_progress_bar=bool(experiment_conf["enable_progress_bar"]),
-        # gradient_clip_val=1.0,
     )
 
-    EDM_L_module = EDMModule(
+    # EDM_L_module = EDMModule(
+    #     datamodule=dm,
+    #     model_conf=model_conf,
+    #     training_conf=training_conf,
+    #     data_conf=data_conf,
+    #     model=model, 
+    #     tracker=tracker,
+    # )
+
+    VP_L_module = VPModule(
         datamodule=dm,
         model_conf=model_conf,
         training_conf=training_conf,
@@ -186,13 +194,12 @@ def main(cfg: DictConfig) -> None:
         model=model, 
         tracker=tracker,
     )
-
     model_name = f"{model_conf['model_name']}_model"
 
     print("Starting training.")
-    trainer.fit(EDM_L_module, dm)
+    trainer.fit(VP_L_module, dm)
 
-    register_from_checkpoint(trainer, EDM_L_module, model_name=model_name)
+    register_from_checkpoint(trainer, VP_L_module, model_name=model_name)
 
 if __name__ == "__main__":
     main()

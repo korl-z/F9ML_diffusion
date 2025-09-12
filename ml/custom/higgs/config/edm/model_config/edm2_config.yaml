@@ -11,7 +11,7 @@ network:
 loss_fn:
   P_mean: -0.4
   P_std: 1.0
-  return_logvar: True
+  return_logvar: True #adds a trainable parameter for dynamic loss
 
 sampler:
   num_steps: 100
@@ -20,4 +20,3 @@ sampler:
   rho: 7.0
   S_churn: 0 #param for adding stohasticity
 
-test_sample_count: 2048
