@@ -1,0 +1,21 @@
+model_name: MPtinyunet_VE
+img_shape: [2, 3, 3] #inchannels, w, h
+
+network:
+  in_channels: 2
+  time_emb_dim: 16
+  base_channels: 16
+  channel_mults: [1, 2]
+  use_attention_at_level: [False, True]
+
+loss_fn:
+  sigma_min: 0.02
+  sigma_max: 100
+
+sampler:
+  num_steps: 100 #number of sampler steps
+  sigma_min: 0.02
+  sigma_max: 100
+  S_churn: 0 #param for adding stohasticity 0=deterministic
+
+  solver: euler

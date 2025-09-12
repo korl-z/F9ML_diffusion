@@ -368,6 +368,7 @@ class VPPrecond(nn.Module):
         beta_d = 2 * (np.log(sigma_min ** 2 + 1) / epsilon_s - np.log(sigma_max ** 2 + 1)) / (epsilon_s - 1)
         beta_min = np.log(sigma_max ** 2 + 1) - 0.5 * beta_d
 
+        #create timestep arrays and convert to sigma
         step_indices = torch.arange(num_steps, dtype=torch.float64, device=latents.device)
         t_vals = 1 + step_indices / (num_steps - 1) * (epsilon_s - 1)
         sigma_steps = vp_sigma(beta_d, beta_min)(t_vals)
@@ -387,6 +388,136 @@ class VPPrecond(nn.Module):
 
         t_next = t_steps[0]
         x_next = latents.to(torch.float64) * (sigma(t_next) * s(t_next))
+        for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])): # 0, ..., N-1
+            x_cur = x_next
+
+            # Increase noise temporarily.
+            gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= sigma(t_cur) <= S_max else 0
+            t_hat = sigma_inv(self.round_sigma(sigma(t_cur) + gamma * sigma(t_cur)))
+            x_hat = s(t_hat) / s(t_cur) * x_cur + (sigma(t_hat) ** 2 - sigma(t_cur) ** 2).clip(min=0).sqrt() * s(t_hat) * S_noise * torch.randn_like(x_cur)
+
+            # Euler step.
+            h = t_next - t_hat
+            denoised = self(x_hat / s(t_hat), sigma(t_hat), class_labels=None).to(torch.float64)
+            d_cur = (sigma_deriv(t_hat) / sigma(t_hat) + s_deriv(t_hat) / s(t_hat)) * x_hat - sigma_deriv(t_hat) * s(t_hat) / sigma(t_hat) * denoised
+            x_prime = x_hat + h * d_cur
+            t_prime = t_hat + h
+
+            # Apply 2nd order correction.
+            if solver == 'euler' or i == num_steps - 1:
+                x_next = x_hat + h * d_cur
+            else:
+                assert solver == 'heun'
+                denoised = self(x_prime / s(t_prime), sigma(t_prime), class_labels=None).to(torch.float64)
+                d_prime = (sigma_deriv(t_prime) / sigma(t_prime) + s_deriv(t_prime) / s(t_prime)) * x_prime - sigma_deriv(t_prime) * s(t_prime) / sigma(t_prime) * denoised
+                x_next = x_hat + h * (0.5 * d_cur + 0.5 * d_prime)
+
+        return x_next
+    
+    def sample(self, num_samples: int, chunks: int = 20, **sampler_kwargs):
+        device = next(self.parameters()).device
+        self.eval()
+
+        sampler_cfg = {**self.sampler_cfg, **sampler_kwargs}
+        chunk_size = math.ceil(num_samples / chunks)
+        all_samples = []
+
+        with torch.no_grad():
+            for _ in tqdm(
+                range(chunks), desc=f"Sampling in {chunks} chunks, using {sampler_cfg["solver"]} ODE solver"
+            ):
+                n_to_sample = min(chunk_size, num_samples - len(all_samples))
+                if n_to_sample == 0:
+                    break
+                latents = torch.randn((n_to_sample, *self.img_shape), device=device)
+                samples_reshaped = self._run_sampler(latents, sampler_cfg)
+
+                samples_chunk = (
+                    samples_reshaped.view(n_to_sample, self.n_features).cpu().numpy()
+                )
+                all_samples.append(samples_chunk)
+
+        return np.concatenate(all_samples, axis=0)
+    
+
+
+#VE precond:
+class VEPrecond(nn.Module):
+    def __init__(
+        self,
+        net, 
+        img_shape=None, # (num_channels, h, w)
+        M: int = 1000,
+    ):
+        super().__init__()
+        self.net = net
+        self.img_shape = tuple(img_shape)
+        self.n_features = np.prod(self.img_shape)
+        self.M = M
+
+    def forward(
+            self, 
+            x, 
+            sigma,
+            class_labels=None,
+            augment_labels=None,
+    ):
+        x = x.to(torch.float32)
+        sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
+
+        dtype = torch.float32
+
+
+        c_skip = 1
+        c_out = sigma
+        c_in = 1
+        c_noise = (0.5 * sigma).log()
+
+        F_x = self.net((c_in * x).to(dtype), c_noise.flatten(), class_labels, augment_labels)
+        assert F_x.dtype == dtype
+        D_x = c_skip * x + c_out * F_x.to(torch.float32)
+        return D_x
+    
+    def round_sigma(self, sigma):
+        return torch.as_tensor(sigma)
+
+    @torch.no_grad()
+    def _run_sampler(self, latents, sampler_cfg):
+        num_steps = sampler_cfg["num_steps"]
+        sigma_min = sampler_cfg["sigma_min"]
+        sigma_max = sampler_cfg["sigma_max"]
+
+        S_churn = sampler_cfg.get("S_churn", 0)
+        S_min = sampler_cfg.get("S_min", 0)
+        S_max = sampler_cfg.get("S_max", float("inf"))
+        S_noise = sampler_cfg.get("S_noise", 1)
+
+        solver = sampler_cfg["solver"]
+        
+        ve_sigma = lambda t: t.sqrt()
+        ve_sigma_deriv = lambda t: 0.5 / t.sqrt()
+        ve_sigma_inv = lambda sigma: sigma ** 2
+
+        #create timestep arrays and convert to sigma
+        step_indices = torch.arange(num_steps, dtype=torch.float64, device=latents.device)
+        t_vals = (sigma_max ** 2) * ((sigma_min ** 2 / sigma_max ** 2) ** (step_indices / (num_steps - 1)))
+        sigma_steps = ve_sigma(t_vals)
+
+        #define schedule
+        sigma = ve_sigma
+        sigma_deriv = ve_sigma_deriv
+        sigma_inv = ve_sigma_inv
+
+        #define scaling schedule.
+        s = lambda t: 1
+        s_deriv = lambda t: 0
+
+        # Compute final time steps based on the corresponding noise levels.
+        t_steps = sigma_inv(self.round_sigma(sigma_steps))
+        t_steps = torch.cat([t_steps, torch.zeros_like(t_steps[:1])]) # t_N = 0
+
+        t_next = t_steps[0]
+        x_next = latents.to(torch.float64) * (sigma(t_next) * s(t_next)) #rescale startin gaussian to proper width
         for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])): # 0, ..., N-1
             x_cur = x_next
 
