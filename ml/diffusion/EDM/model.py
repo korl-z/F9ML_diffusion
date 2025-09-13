@@ -296,8 +296,6 @@ class EDMPrecond2(torch.nn.Module):
         return np.concatenate(all_samples, axis=0)
     
 
-
-
 #Vp predcond: 
 class VPPrecond(nn.Module):
     def __init__(

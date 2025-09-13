@@ -1,14 +1,10 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import math
 from tqdm import tqdm
-from typing import Dict, Optional, Any, List
-from ml.common.nn.positional_emb import TimeEmbedding
-from ml.common.nn.modules import Module
+from typing import Optional, Any
 from ml.diffusion.ddpm.samplers import SamplerVar
-from ml.common.nn.unet import NoisePredictorUNet, TinyUNet
     
 #standard ddpm implemenation, wrapper model with built in sampler methods
 class DDPMPrecond(nn.Module):
@@ -45,7 +41,7 @@ class DDPMPrecond(nn.Module):
         return eps_pred
 
     @torch.no_grad()
-    def _run_sampler(self, latents, mean_only=False):
+    def _run_sampler(self, latents, mean_only=True):
         """Internal helper that runs the core DDPM sampling loop."""
         T = self.diffuser.T
         x = latents
@@ -72,13 +68,10 @@ class DDPMPrecond(nn.Module):
                 x = mean
         return x
 
-    def sample(self, num_samples: int, chunks: int = 20, mean_only: bool = False):
+    def sample(self, num_samples: int, chunks: int = 20, mean_only: bool = True):
         """
         Public method for generating samples in chunks.
-        """
-        if self.diffuser is None:
-            raise RuntimeError("Diffuser must be attached to the model via set_diffuser()")
-        
+        """ 
         device = next(self.parameters()).device
         self.eval()
 

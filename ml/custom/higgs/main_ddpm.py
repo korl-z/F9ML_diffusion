@@ -14,7 +14,6 @@ from lightning.pytorch.loggers import MLFlowLogger
 
 import hydra
 from omegaconf import DictConfig
-from hydra.utils import to_absolute_path
 
 from ml.common.data_utils.processors import Preprocessor, ProcessorChainer
 from ml.common.utils.register_model import register_from_checkpoint
@@ -23,10 +22,9 @@ from process_higgs_dataset import (
     HIGGSFeatureSelector,
     HIGGSNpyProcessor,
 )
-from ml.common.utils.utils import EMACallback, PFEMACallback
+from ml.common.utils.utils import PFEMACallback
 
 from ml.diffusion.ddpm.model import NoisePredictorUNet
-from ml.diffusion.ddpm.diffusers import DiffuserDDPMeps
 from ml.diffusion.ddpm.lightning_ddpm import DDPMModule
 
 from ml.common.utils.loggers import timeit, log_num_trainable_params, setup_logger
@@ -65,16 +63,14 @@ def main(cfg: DictConfig) -> None:
     if experiment_conf["run_name"] is None:
         experiment_conf["run_name"] = time.asctime(time.localtime())
 
-    experiment_name = "syn_data_generation"
+    experiment_name = "ddpm"
 
     data_conf = cfg.data_config
     model_conf = cfg.model_config
     training_conf = cfg.training_config
 
     accelerator_cfg = str(experiment_conf["accelerator"])
-    use_gpu = accelerator_cfg.startswith("gpu") and torch.cuda.is_available()
-    device = torch.device("cuda" if use_gpu is True else "cpu")
-    print("Using device:", device)
+    logging.info(f"Using device: {accelerator_cfg}")
 
     # train on background
     on_train = data_conf["feature_selection"]["on_train"]
@@ -111,13 +107,6 @@ def main(cfg: DictConfig) -> None:
 
     logging.info(f"Setting up {model_conf['model_name']} model.")
 
-    # setup timesteps, diffuser, model
-    time_steps = int(model_conf["diffuser"]["timesteps"])
-
-    diffuser2 = DiffuserDDPMeps(
-        timesteps=time_steps, scheduler=model_conf["diffuser"]["scheduler"], device=device
-    )
-
     tracker = DDPMTracker(experiment_conf, tracker_path="ml/custom/higgs/metrics")
 
     model = NoisePredictorUNet(data_dim=data_conf["input_dim"],
@@ -134,12 +123,11 @@ def main(cfg: DictConfig) -> None:
         mode="min",
         verbose=True,
     )
-
     
     lr_cb = LearningRateMonitor(logging_interval="step")
 
     ema_cb = PFEMACallback(std=training_conf["std"],
-        batchsize=training_conf["batch_size"],
+        batchsize=data_conf["dataloader_config"]["batch_size"],
     )
 
     tqdm_cb = (
@@ -166,12 +154,12 @@ def main(cfg: DictConfig) -> None:
 
     trainer = L.Trainer(
         max_epochs=int(training_conf["max_epochs"]),
-        accelerator=str(experiment_conf["accelerator"]),
-        devices=int(experiment_conf["devices"]),
+        accelerator=experiment_conf["accelerator"],
+        devices=experiment_conf["devices"],
         check_val_every_n_epoch=experiment_conf["check_eval_n_epoch"],
         log_every_n_steps=experiment_conf["log_every_n_steps"],
         num_sanity_val_steps=experiment_conf["num_sanity_val_steps"],
-        precision=int(experiment_conf["precision"]),
+        precision=experiment_conf["precision"],
         logger=mlf_logger,
         callbacks=callbacks,
         enable_progress_bar=bool(experiment_conf["enable_progress_bar"]),
@@ -184,7 +172,6 @@ def main(cfg: DictConfig) -> None:
         training_conf=training_conf,
         data_conf=data_conf,
         model=model,
-        diffuser=diffuser2,
         tracker=tracker,
     )
 
