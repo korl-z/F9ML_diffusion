@@ -26,7 +26,7 @@ from process_higgs_dataset import (
 from ml.common.utils.utils import EMACallback, PFEMACallback
 
 from ml.diffusion.EDM.lightning_EDM import EDM2Module
-from ml.common.nn.unet import MPTinyUNet
+from ml.common.nn.unet import MPTinyUNet, NoisePredictorUNet
 
 from ml.common.utils.loggers import timeit, log_num_trainable_params, setup_logger
 from ml.diffusion.trackers import DDPMTracker
@@ -111,11 +111,10 @@ def main(cfg: DictConfig) -> None:
 
     logging.info(f"Setting up {model_conf['model_name']} model.")
 
-    # tracker = DDPMTracker(experiment_conf, tracker_path="ml/custom/higgs/metrics")
-        
-    network_conf = model_conf["network"]
+    tracker = DDPMTracker(experiment_conf, tracker_path="ml/custom/higgs/metrics")
 
-    model = MPTinyUNet(network_conf["in_channels"], network_conf["base_channels"], network_conf["time_emb_dim"], network_conf["channel_mults"], network_conf["use_attention_at_level"])
+    model = NoisePredictorUNet(data_dim=data_conf["input_dim"],         **model_conf["network"], )
+    # model = MPTinyUNet(network_conf["in_channels"], network_conf["base_channels"], network_conf["time_emb_dim"], network_conf["channel_mults"], network_conf["use_attention_at_level"])
 
 
     logging.info("Done model setup.")
@@ -131,11 +130,6 @@ def main(cfg: DictConfig) -> None:
     )
 
     lr_cb = LearningRateMonitor(logging_interval="step")
-
-    # ema_cb = EMACallback(decay_halflife_kimg=training_conf["ema_halflife_kimg"],
-    #     rampup_ratio=training_conf["ema_rampup_ratio"],
-    #     batchsize=training_conf["batch_size"]
-    # )
 
     ema_cb = PFEMACallback(std=training_conf["std"],
         batchsize=training_conf["batch_size"],
@@ -154,7 +148,7 @@ def main(cfg: DictConfig) -> None:
         verbose=True,
     )
 
-    callbacks = [ckpt_cb, lr_cb, ema_cb, tqdm_cb, es_cb]
+    callbacks = [ckpt_cb, lr_cb, ema_cb, tqdm_cb, es_cb, tracker]
 
     # initialize mlflow logger
     mlf_logger = MLFlowLogger(

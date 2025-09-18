@@ -63,14 +63,16 @@ def main(cfg: DictConfig) -> None:
     if experiment_conf["run_name"] is None:
         experiment_conf["run_name"] = time.asctime(time.localtime())
 
-    experiment_name = "ddpm"
+    experiment_name = "DDPM"
 
     data_conf = cfg.data_config
     model_conf = cfg.model_config
     training_conf = cfg.training_config
 
     accelerator_cfg = str(experiment_conf["accelerator"])
-    logging.info(f"Using device: {accelerator_cfg}")
+    use_gpu = accelerator_cfg.startswith("gpu") and torch.cuda.is_available()
+    device = torch.device("cuda" if use_gpu is True else "cpu")
+    logging.info(f"Using device: {device}")
 
     # train on background
     on_train = data_conf["feature_selection"]["on_train"]
@@ -107,7 +109,7 @@ def main(cfg: DictConfig) -> None:
 
     logging.info(f"Setting up {model_conf['model_name']} model.")
 
-    tracker = DDPMTracker(experiment_conf, tracker_path="ml/custom/higgs/metrics")
+    tracker = DDPMTracker(experiment_conf, tracker_path="/data0/korlz/f9-ml/ml/custom/higgs/metrics/")
 
     model = NoisePredictorUNet(data_dim=data_conf["input_dim"],
             **model_conf["network"], )
@@ -143,7 +145,7 @@ def main(cfg: DictConfig) -> None:
         verbose=True,
     )
 
-    callbacks = [ckpt_cb, lr_cb, ema_cb, tqdm_cb, es_cb]
+    callbacks = [ckpt_cb, lr_cb, ema_cb, tqdm_cb, es_cb, tracker]
 
     mlf_logger = MLFlowLogger(
         experiment_name=experiment_name,  # ni vec v yaml
@@ -164,7 +166,6 @@ def main(cfg: DictConfig) -> None:
         callbacks=callbacks,
         enable_progress_bar=bool(experiment_conf["enable_progress_bar"]),
     )
-
 
     ddpm_L_module = DDPMModule(
         datamodule=dm,

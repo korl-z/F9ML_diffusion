@@ -3,7 +3,7 @@ defaults:
   - data_config
   - training_config
   - experiment_config
-  - model_config: edm2_config
+  - model_config: edm_config
   - override hydra/hydra_logging: disabled
   - override hydra/job_logging: disabled
 

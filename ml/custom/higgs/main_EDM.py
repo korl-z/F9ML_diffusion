@@ -23,7 +23,7 @@ from process_higgs_dataset import (
     HIGGSNpyProcessor,
 )
 from ml.common.utils.utils import EMACallback, PFEMACallback, MagnitudeMonitor
-from ml.common.nn.unet import MPTinyUNet
+from ml.common.nn.unet import MPTinyUNet, NoisePredictorUNet, UNet1D
 
 from ml.diffusion.EDM.lightning_EDM import EDMModule, VPModule
 
@@ -106,14 +106,16 @@ def main(cfg: DictConfig) -> None:
 
     logging.info(f"Setting up {model_conf['model_name']} model.")
 
-    tracker = DDPMTracker(experiment_conf, tracker_path="ml/custom/higgs/metrics")
-    # model = SimpleUNet(model_conf["in_channels"], model_conf["time_emb_dim"], model_conf["base_channels"], model_conf["channel_mults"])
+    # tracker = DDPMTracker(experiment_conf, tracker_path="ml/custom/higgs/metrics")
 
+    model = UNet1D(data_dim=data_conf["input_dim"],
+            **model_conf["network"], )
+    
     network_conf = model_conf["network"]
 
     # model = TinyUNet(network_conf["in_channels"], network_conf["base_channels"], network_conf["time_emb_dim"], network_conf["channel_mults"], network_conf["use_attention_at_level"])
 
-    model = MPTinyUNet(network_conf["in_channels"], network_conf["base_channels"], network_conf["time_emb_dim"], network_conf["channel_mults"], network_conf["use_attention_at_level"])
+    # model = MPTinyUNet(network_conf["in_channels"], network_conf["base_channels"], network_conf["time_emb_dim"], network_conf["channel_mults"], network_conf["use_attention_at_level"])
 
 
     logging.info("Done model setup.")
@@ -129,11 +131,6 @@ def main(cfg: DictConfig) -> None:
     )
     
     lr_cb = LearningRateMonitor(logging_interval="step")
-
-    # ema_cb = EMACallback(decay_halflife_kimg=training_conf["ema_halflife_kimg"],
-    #     rampup_ratio=training_conf["ema_rampup_ratio"],
-    #     batchsize=training_conf["batch_size"]
-    # )
 
     ema_cb = PFEMACallback(std=training_conf["std"],
         batchsize=data_conf["dataloader_config"]["batch_size"],
@@ -151,8 +148,6 @@ def main(cfg: DictConfig) -> None:
         patience=training_conf["early_stop_patience"],
         verbose=True,
     )
-
-    # mag_monitor_cb = MagnitudeMonitor()
 
     callbacks = [ckpt_cb, lr_cb, ema_cb, tqdm_cb, es_cb]
 
@@ -177,7 +172,16 @@ def main(cfg: DictConfig) -> None:
         enable_progress_bar=bool(experiment_conf["enable_progress_bar"]),
     )
 
-    # EDM_L_module = EDMModule(
+    EDM_L_module = EDMModule(
+        datamodule=dm,
+        model_conf=model_conf,
+        training_conf=training_conf,
+        data_conf=data_conf,
+        model=model, 
+        tracker=None,
+    )
+
+    # VP_L_module = VPModule(
     #     datamodule=dm,
     #     model_conf=model_conf,
     #     training_conf=training_conf,
@@ -186,20 +190,12 @@ def main(cfg: DictConfig) -> None:
     #     tracker=tracker,
     # )
 
-    VP_L_module = VPModule(
-        datamodule=dm,
-        model_conf=model_conf,
-        training_conf=training_conf,
-        data_conf=data_conf,
-        model=model, 
-        tracker=tracker,
-    )
     model_name = f"{model_conf['model_name']}_model"
 
     print("Starting training.")
-    trainer.fit(VP_L_module, dm)
+    trainer.fit(EDM_L_module, dm)
 
-    register_from_checkpoint(trainer, VP_L_module, model_name=model_name)
+    register_from_checkpoint(trainer, EDM_L_module, model_name=model_name)
 
 if __name__ == "__main__":
     main()

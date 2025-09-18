@@ -87,7 +87,6 @@ class EDMPrecond(nn.Module):
         c_skip = self.sigma_data ** 2 / (sigma ** 2 + self.sigma_data ** 2)
         c_out = sigma * self.sigma_data / (sigma ** 2 + self.sigma_data ** 2).sqrt()
         c_in = 1 / (self.sigma_data ** 2 + sigma ** 2).sqrt()
-        # c_noise = sigma.log() / 4
         
         F_x = self.net(c_in * x, sigma.flatten(), class_labels, augment_labels)
         
@@ -432,7 +431,7 @@ class VPPrecond(nn.Module):
 
         with torch.no_grad():
             for _ in tqdm(
-                range(chunks), desc=f"Sampling in {chunks} chunks, using {sampler_cfg["solver"]} ODE solver"
+                range(chunks), desc=f"Sampling in {chunks} chunks, using {sampler_cfg['solver']} ODE solver"
             ):
                 n_to_sample = min(chunk_size, num_samples - len(all_samples))
                 if n_to_sample == 0:
@@ -562,7 +561,7 @@ class VEPrecond(nn.Module):
 
         with torch.no_grad():
             for _ in tqdm(
-                range(chunks), desc=f"Sampling in {chunks} chunks, using {sampler_cfg["solver"]} ODE solver"
+                range(chunks), desc=f"Sampling in {chunks} chunks, using {sampler_cfg['solver']} ODE solver"
             ):
                 n_to_sample = min(chunk_size, num_samples - len(all_samples))
                 if n_to_sample == 0:

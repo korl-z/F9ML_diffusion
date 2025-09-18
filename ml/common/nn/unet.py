@@ -134,7 +134,103 @@ class TinyUNet(nn.Module):
         
         return self.conv_out(h)
 
-#DDPM implementation, for testing, 1d array implementation
+
+
+
+class UNet1D(nn.Module):
+    def __init__(
+        self,
+        data_dim: int,
+        base_dim: int = 128,
+        depth: int = 3,
+        time_emb_dim: int = 32,
+    ):
+        super().__init__()
+        self.data_dim = int(data_dim)
+        self.base_dim = int(base_dim)
+        self.depth = int(depth)
+        self.time_emb_dim = int(time_emb_dim)
+            
+        self.time_embedding = TimeEmbedding(time_emb_dim)
+        self.time_mlp = nn.Sequential(
+            nn.Linear(time_emb_dim, time_emb_dim), nn.SiLU(),
+            nn.Linear(time_emb_dim, time_emb_dim), nn.SiLU(),
+        )
+        hidden_dims = [base_dim * (2**i) for i in range(depth)]
+        self.hidden_dims = hidden_dims
+        self.input_fc = nn.Linear(self.data_dim, hidden_dims[0])
+        self.input_ln = nn.LayerNorm(hidden_dims[0])
+        self.enc_layers = nn.ModuleList()
+        self.enc_ln = nn.ModuleList()
+        for i in range(depth - 1):
+            self.enc_layers.append(nn.Linear(hidden_dims[i], hidden_dims[i + 1]))
+            self.enc_ln.append(nn.LayerNorm(hidden_dims[i + 1]))
+        self.bottleneck = nn.Sequential(
+            nn.Linear(hidden_dims[-1], hidden_dims[-1]), nn.SiLU(),
+            nn.Linear(hidden_dims[-1], hidden_dims[-1]), nn.SiLU(),
+        )
+        self.bottleneck_ln = nn.LayerNorm(hidden_dims[-1])
+        self.dec_layers = nn.ModuleList()
+        self.dec_ln = nn.ModuleList()
+        for i in range(depth - 1, 0, -1):
+            in_dim = hidden_dims[i] + hidden_dims[i]
+            out_dim = hidden_dims[i - 1]
+            self.dec_layers.append(nn.Linear(in_dim, out_dim))
+            self.dec_ln.append(nn.LayerNorm(out_dim))
+        self.out_proj = nn.Linear(hidden_dims[0], self.data_dim)
+        self.time_proj_input = nn.Linear(time_emb_dim, hidden_dims[0])
+        self.time_proj_enc = nn.ModuleList([nn.Linear(time_emb_dim, d) for d in hidden_dims[1:]])
+        self.time_proj_bottleneck = nn.Linear(time_emb_dim, hidden_dims[-1])
+        self.time_proj_dec = nn.ModuleList([nn.Linear(time_emb_dim, d) for d in hidden_dims[:-1][::-1]])
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.kaiming_uniform_(m.weight, a=math.sqrt(5))
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
+    def forward(self, x: torch.Tensor, sigma, class_labels=None, augment_labels=None):
+        """
+        MODIFIED forward pass for EDM framework compatibility.
+        """
+        original_shape = x.shape
+        batch_size = original_shape[0]
+        x_1d = x.view(batch_size, -1)
+        if x_1d.shape[1] != self.data_dim:
+            raise ValueError(f"Input tensor flattened to {x_1d.shape[1]} features, "
+                             f"but model was initialized with data_dim={self.data_dim}.")
+
+        temb = self.time_embedding(sigma)
+        temb = self.time_mlp(temb)
+        h = self.input_fc(x_1d) + self.time_proj_input(temb)
+        h = self.input_ln(h)
+        h = F.silu(h)
+        skips = []
+        for i, enc in enumerate(self.enc_layers):
+            h = enc(h)
+            h = h + self.time_proj_enc[i](temb)
+            h = self.enc_ln[i](h)
+            h = F.silu(h)
+            skips.append(h)
+        h = self.bottleneck(h)
+        h = h + self.time_proj_bottleneck(temb)
+        h = self.bottleneck_ln(h)
+        h = F.silu(h)
+        for j, dec in enumerate(self.dec_layers):
+            skip = skips[-1 - j]
+            h = torch.cat([h, skip], dim=-1)
+            h = dec(h)
+            h = h + self.time_proj_dec[j](temb)
+            h = self.dec_ln[j](h)
+            h = F.silu(h)
+        output_1d = self.out_proj(h)
+
+        output_4d = output_1d.view(original_shape)
+        return output_4d
+    
+
+
+
+#1d array implementation
 class NoisePredictorUNet(nn.Module):
     def __init__(
         self,

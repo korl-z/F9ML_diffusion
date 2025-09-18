@@ -1,12 +1,17 @@
 model_name: MPtinyunet_EDM
 img_shape: [2, 3, 3] #inchannels, w, h
 
-network: 
-  in_channels: 2
-  time_emb_dim: 32
-  base_channels: 16
-  channel_mults: [1, 2]
-  use_attention_at_level: [False, True]
+# network: 
+#   in_channels: 2
+#   time_emb_dim: 32
+#   base_channels: 16
+#   channel_mults: [1, 2]
+#   use_attention_at_level: [False, True]
+
+network:
+  base_dim: 128
+  depth: 3
+  time_emb_dim: 64
 
 loss_fn:
   P_mean: -1.2

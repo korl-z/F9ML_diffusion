@@ -7,6 +7,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from tqdm import tqdm
 
 
+
 class GaussRankScaler:
     def __init__(
         self,
@@ -108,6 +109,7 @@ class GaussRankScaler:
 
         return scaled_rank
 
+
     def interpolate_erfinv(self, x, scaled_rank):
         if len(x) < self.interp_limit:
             interp_limit = -1
@@ -124,7 +126,9 @@ class GaussRankScaler:
 
         interp_transf_x = interp_func(x)
         interp_transf_x = np.clip(interp_transf_x, -self.bound, self.bound)
-        interp_transf_x = erfinv(interp_transf_x)
+        
+        #FIX: multiply by sqrt2
+        interp_transf_x = erfinv(interp_transf_x) * np.sqrt(2.0)
 
         self._nan_warn(interp_transf_x, msg="From erfinv.")
 
@@ -138,8 +142,10 @@ class GaussRankScaler:
             copy=self.do_copy,
             fill_value=self.fill_value,
         )
-
-        inv_interp_transf_x = erf(x)
+        
+        # FIX: divide by sqrt2
+        inv_interp_transf_x = erf(x / np.sqrt(2.0))
+        
         inv_interp_transf_x = inv_interp_func(inv_interp_transf_x)
 
         self._nan_warn(inv_interp_transf_x, msg="From erf.")
@@ -177,7 +183,7 @@ if __name__ == "__main__":
     # test
 
     import matplotlib.pyplot as plt
-
+    from scipy.stats import norm
     from ml.custom.higgs.analysis.utils import run_chainer
 
     data, selection, scalers = run_chainer(cont_rescale_type="gauss_rank", on_train="bkg", n_data=10**5)
@@ -195,7 +201,10 @@ if __name__ == "__main__":
         ax.hist(data[:, i], bins=50, histtype="step", lw=1, label="scaled", range=(-5, 5), density=True)
         ax.hist(inv_data[:, i], bins=50, histtype="step", lw=1, label="original", range=(-5, 5), density=True)
         ax.set_xlabel(label)
-        ax.set_yscale("log")
+
+        x = np.linspace(-4, 4, 100)
+        ax.plot(x, norm.pdf(x,0,1), '-k')
+
 
     axs[0].legend()
 

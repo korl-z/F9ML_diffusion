@@ -123,8 +123,8 @@ def main(cfg):
     # pick model name and version
     # model_name = "simpleunet_EDM_model"
     # ver = 17
-    model_name = "MPtinyunet_EDM2_model"
-    ver = 5
+    model_name = "MPtinyunet_EDM_model"
+    ver = 3
     N = 1600
 
     # --- Generate data file ---
