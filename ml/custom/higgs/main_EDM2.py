@@ -26,7 +26,7 @@ from process_higgs_dataset import (
 from ml.common.utils.utils import EMACallback, PFEMACallback
 
 from ml.diffusion.EDM.lightning_EDM import EDM2Module
-from ml.common.nn.unet import MPTinyUNet, NoisePredictorUNet
+from ml.common.nn.unet import MPTinyUNet, NoisePredictorUNet, UNet1D
 
 from ml.common.utils.loggers import timeit, log_num_trainable_params, setup_logger
 from ml.diffusion.trackers import DDPMTracker
@@ -111,11 +111,13 @@ def main(cfg: DictConfig) -> None:
 
     logging.info(f"Setting up {model_conf['model_name']} model.")
 
-    tracker = DDPMTracker(experiment_conf, tracker_path="ml/custom/higgs/metrics")
+    # tracker = DDPMTracker(experiment_conf, tracker_path="ml/custom/higgs/metrics")
 
-    model = NoisePredictorUNet(data_dim=data_conf["input_dim"],         **model_conf["network"], )
+    # model = NoisePredictorUNet(data_dim=data_conf["input_dim"],         **model_conf["network"], )
     # model = MPTinyUNet(network_conf["in_channels"], network_conf["base_channels"], network_conf["time_emb_dim"], network_conf["channel_mults"], network_conf["use_attention_at_level"])
-
+    model = UNet1D(data_dim=data_conf["input_dim"],
+            **model_conf["network"], )
+    
 
     logging.info("Done model setup.")
     log_num_trainable_params(model, unit="k")
@@ -148,7 +150,7 @@ def main(cfg: DictConfig) -> None:
         verbose=True,
     )
 
-    callbacks = [ckpt_cb, lr_cb, ema_cb, tqdm_cb, es_cb, tracker]
+    callbacks = [ckpt_cb, lr_cb, ema_cb, tqdm_cb, es_cb]
 
     # initialize mlflow logger
     mlf_logger = MLFlowLogger(
@@ -160,16 +162,15 @@ def main(cfg: DictConfig) -> None:
 
     trainer = L.Trainer(
         max_epochs=int(training_conf["max_epochs"]),
-        accelerator=str(experiment_conf["accelerator"]),
-        devices=int(experiment_conf["devices"]),
+        accelerator=experiment_conf["accelerator"],
+        devices=experiment_conf["devices"],
         check_val_every_n_epoch=experiment_conf["check_eval_n_epoch"],
         log_every_n_steps=experiment_conf["log_every_n_steps"],
         num_sanity_val_steps=experiment_conf["num_sanity_val_steps"],
-        precision=int(experiment_conf["precision"]),
+        precision=experiment_conf["precision"],
         logger=mlf_logger,
         callbacks=callbacks,
         enable_progress_bar=bool(experiment_conf["enable_progress_bar"]),
-        # default_root_dir=ckpt_dir_full,
     )
 
     EDM2_L_module = EDM2Module(

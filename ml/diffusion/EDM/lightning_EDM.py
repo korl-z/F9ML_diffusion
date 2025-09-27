@@ -107,7 +107,7 @@ class EDM2Module(Module):
         model: Optional[torch.nn.Module] = None,
         tracker=None,
     ):
-        super().__init__(model_conf, training_conf, model, loss_func=None, tracker=None)
+        super().__init__(model_conf, training_conf, model, tracker)
         self.save_hyperparameters(ignore=["model", "tracker"])
 
         self.datamodule = datamodule
@@ -188,7 +188,7 @@ class VPModule(Module):
         model: Optional[torch.nn.Module] = None,
         tracker=None,
     ):
-        super().__init__(model_conf, training_conf, model, loss_func=None, tracker=None)
+        super().__init__(model_conf, training_conf, model, tracker)
         self.save_hyperparameters(ignore=["model", "tracker"])
 
         self.datamodule = datamodule
@@ -263,7 +263,7 @@ class VEModule(Module):
         model: Optional[torch.nn.Module] = None,
         tracker=None,
     ):
-        super().__init__(model_conf, training_conf, model, loss_func=None, tracker=None)
+        super().__init__(model_conf, training_conf, model, tracker)
         self.save_hyperparameters(ignore=["model", "tracker"])
 
         self.datamodule = datamodule
