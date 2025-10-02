@@ -223,7 +223,7 @@ class HybridLoss:
     """
     Implements the hybrid loss from 'Improved DDPM': L_simple + lambda * L_vlb.
     """
-    def __init__(self, diffuser: Any, vlb_weight: float = 0.001):
+    def __init__(self, diffuser: Any, vlb_weight: float = 0.0001):
         if diffuser is None:
             raise ValueError("HybridLoss requires a 'diffuser' instance.")
         self.diffuser = diffuser

@@ -41,8 +41,8 @@ class DDPMPrecond(nn.Module):
         return eps_pred
 
     @torch.no_grad()
-    def _run_sampler(self, latents, mean_only=True):
-        """Internal helper that runs the core DDPM sampling loop."""
+    def _run_sampler(self, latents, mean_only=False):
+        """Internal helper."""
         T = self.diffuser.T
         x = latents
         device = latents.device
@@ -68,7 +68,7 @@ class DDPMPrecond(nn.Module):
                 x = mean
         return x
 
-    def sample(self, num_samples: int, chunks: int = 20, mean_only: bool = True):
+    def sample(self, num_samples: int, chunks: int = 20, mean_only: bool = False):
         """
         Public method for generating samples in chunks.
         """ 
@@ -91,7 +91,6 @@ class DDPMPrecond(nn.Module):
         return np.concatenate(all_samples, axis=0)
     
 
-#needs to be edited into a wrapper, so its modular
 class iDDPMPrecond(nn.Module):
     def __init__(
         self,
@@ -116,20 +115,37 @@ class iDDPMPrecond(nn.Module):
                  and the second D channels are v_pred.
         """
         model_out = self.net(x, t)
-        return model_out #eps_pred + v_pred
+        return model_out #eps_pred + v_pred (v_pred is used as interpolation parameter (more stable than directly predicting Sigma))
+
+    @torch.no_grad()
+    def _run_sampler(self, latents):
+        """Internal helper."""
+        T = self.diffuser.T
+        x = latents
+        device = latents.device
+        
+        # The original, full T-step reverse loop
+        for t_idx in range(T - 1, -1, -1):
+            t = torch.full((x.shape[0],), t_idx, device=device, dtype=torch.long)
+            
+            model_output = self.model(x, t)
+            
+            pred_mean, pred_log_var = self.diffuser.p_mean_variance(model_output, x, t)
+            
+            if t_idx > 0:
+                noise = torch.randn_like(x)
+                x = pred_mean + (0.5 * pred_log_var).exp() * noise
+            else:
+                x = pred_mean
+                
+        return x
 
     def sample(self, num_samples: int, chunks: int = 20):
         """
-        Public method for generating samples in memory-efficient chunks.
-        This method instantiates and delegates the core logic to the SamplerVar class.
-        """
-        if self.diffuser is None:
-            raise RuntimeError("A diffuser must be attached to the model via set_diffuser().")
-        
+        Public method for generating samples in chunks.
+        """ 
         device = next(self.parameters()).device
         self.eval()
-
-        sampler = SamplerVar(self, self.diffuser)
 
         chunk_size = math.ceil(num_samples / chunks)
         all_samples = []
@@ -141,21 +157,14 @@ class iDDPMPrecond(nn.Module):
                     break
 
                 latents = torch.randn((n_to_sample, self.data_dim), device=device)
-
-                samples_chunk = sampler.run(latents)
+                samples_chunk = self._run_sampler(latents)
                 all_samples.append(samples_chunk.cpu().numpy())
-        
+
         return np.concatenate(all_samples, axis=0)
     
-
-#----------------------------------------------------------------------------
-# Preconditioning corresponding to improved DDPM (iDDPM) formulation from
-# the paper "Improved Denoising Diffusion Probabilistic Models".
-
-
 class iDDPM2Precond(nn.Module):
     def __init__(self,
-        net,                                # Class name of the underlying model.
+        net,                               
         C_1             = 0.001,            # Timestep adjustment at low noise levels.
         C_2             = 0.008,            # Timestep adjustment at high noise levels.
         M               = 1000,             # Original number of timesteps in the DDPM formulation.

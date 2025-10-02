@@ -3,12 +3,10 @@ from typing import Optional, Dict, Any
 import logging
 
 
-from ml.diffusion.ddpm.model import NoisePredictorUNet, DDPMPrecond, iDDPMPrecond, iDDPM2Precond
-from ml.diffusion.ddpm.diffusers import DiffuserDDPMeps
+from ml.diffusion.ddpm.model import DDPMPrecond, iDDPMPrecond, iDDPM2Precond
+from ml.diffusion.ddpm.diffusers import DiffuserDDPMeps, DiffuseriDDPMeps
 from ml.diffusion.ddpm.losses import DDPMLoss, HybridLoss, iDDPMloss
-from ml.diffusion.ddpm.samplers import SamplerNoise
 from ml.common.nn.modules import Module
-from ml.common.nn.unet import MPTinyUNet
 
 class DDPMModule(Module):
     """
@@ -32,7 +30,7 @@ class DDPMModule(Module):
 
         #instantiate model, diffuser, loss
         self.model = model
-        self.diffuser = DiffuserDDPMeps(timesteps=self.model_conf["diffuser"]["timesteps"], scheduler=self.model_conf["diffuser"]["scheduler"], device='cuda') #fixed device to cpu for now
+        self.diffuser = DiffuserDDPMeps(timesteps=self.model_conf["diffuser"]["timesteps"], scheduler=self.model_conf["diffuser"]["scheduler"], device='cuda') #fixed device for now
         self.loss_fn = DDPMLoss(diffuser=self.diffuser)
 
         # wrapper model, always the same
@@ -71,11 +69,11 @@ class iDDPMModule(Module):
         model: Optional[torch.nn.Module] = None,
         tracker = None
     ):
-        super().__init__(model_conf, training_conf, model)
+        super().__init__(model_conf, training_conf, model, tracker)
         self.save_hyperparameters(ignore=['model', 'diffuser', 'tracker'])
         
         self.model = model
-        self.diffuser = DiffuserDDPMeps(timesteps=self.model_conf["diffuser"]["timesteps"], scheduler=self.model_conf["diffuser"]["scheduler"], device='cuda') #fixed device to cpu for now
+        self.diffuser = DiffuseriDDPMeps(timesteps=self.model_conf["diffuser"]["timesteps"], scheduler=self.model_conf["diffuser"]["scheduler"], device='cuda') #fixed device for now
         self.loss_fn = HybridLoss(diffuser=self.diffuser, vlb_weight=model_conf["vlb_weight"])
         logging.info(f"using vlb_weight={model_conf['vlb_weight']}")
 
