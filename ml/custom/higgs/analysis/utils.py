@@ -19,18 +19,21 @@ from ml.custom.higgs.process_higgs_dataset import (
 
 MODEL_MAP = {
     "ref": "MC",
-    "unet_noise_ddpm_model10": "unet_noise10",
-    "unet_noise_ddpm_model11": "unet_noise11",
-    "unet_noise_ddpm_model": "unet_noise_gauss_rank",
-    "unet_noise_imp_ddpm_model18": "iDDPM_unet_defaultEMA",
-    "simpleunet_EDM_model10": "EDM_unet_PFEMA",
-    "simpleunet_EDM_model11": "EDM_unet_thicker_PFEMA",
-    "tinyunet_EDM_model2": "EDM_tinyunet_5eph_PFEMA",
-    "tinyunet_EDM_model3": "EDM_tinyunet_20eph_PFEMA",
-    "unet_noise_ddpm_model18": "unet_noise18_PFEMA",
-    "MPtinyunet_EDM2_model4": "MP_unet_EDM2_PFEMA",
-    "unet1d_ddpm_model2": "unet1d_ddpm_PFEMA",
+    "unet1d_ddpm_model2": "DDPM-S-unet1d",
+    "unet1d_ddpm_model6": "DDPM-L-unet1d",
+
+    "unet1d_VP_model3": "VP-unet1d",
+    "MPtinyunet_VE_model3": "VE-unet1d",
+    "unet1d_EDM2_model1": "EDM2-unet1d",
+    "unet1d_EDMnoEMA_model1": "EDM-noEMA-unet1d",
+
+    "unet1d_EDMraw_model1": "EDM-raw-unet1d",
+    "unet1d_EDMraw_model2": "EDM-simple-unet1d",
+    
+    "unet1dconv_EDMsimple_model1": "EDM-simple-conv1d",
+    "unet1dconv_VP_model1": "VP-conv1d",
 }
+
 
 LABELS_MAP = {
     "lepton pT": r"lepton $p_\mathrm{T}$",

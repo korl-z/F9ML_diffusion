@@ -207,7 +207,7 @@ class DistancesTest:
 
             logging.info(f"[green]Saving distance plot for {distance_name}.[/green]")
 
-            plt.legend()
+            plt.legend(ncol=4)
             plt.xlabel("Feature")
             plt.ylabel(self.distances[distance_name])
             plt.tight_layout()
