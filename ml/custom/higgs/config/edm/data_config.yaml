@@ -3,14 +3,14 @@ data_config:
   data_name: HIGGS
   input_dim: 18
   base_distribution: normal
-  train_split: 0.1
-  val_split: 0.1
+  train_split: 0.5
+  val_split: 0.5
 
   input_processing:
     data_dir: C:/Users/Uporabnik/Documents/IJS-F9/korlz/ml/data/HIGGS/
     base_file_name: HIGGS_data
     shuffle: True
-    keep_ratio: 0.05
+    keep_ratio: 1
     hold_mode: True
     use_hold: False
     hold_ratio: 0.8
