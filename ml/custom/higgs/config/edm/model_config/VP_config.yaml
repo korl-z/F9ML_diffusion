@@ -1,0 +1,36 @@
+model_name: unet1dconv_VP
+img_shape: [2, 3, 3] #inchannels, w, h
+M: 2000 #number of noise levels for training
+
+network:
+  # in_channels: 2
+  # time_emb_dim: 32
+  # base_channels: 32
+  # channel_mults: [1, 2, 2]
+  # use_attention_at_level: [False, False, True]
+
+  # base_dim: 64
+  # depth: 4
+  # time_emb_dim: 32
+
+  base_ch: 128
+  depth: 4
+  time_emb_dim: 64
+  
+loss_fn:
+  beta_d: 19.9
+  beta_min: 0.1
+  epsilon_t: 1e-5 #minimum time t\in[eps_t, 1]
+
+sampler:
+  num_steps: 70 #number of sampler steps
+  beta_d: 19.9
+  beta_min: 0.1
+  epsilon_s: 1e-3 #minimum noise level, clips sigma
+  S_churn: 30 #adds stohasticity if > 0
+  S_min: 0.01 #use det. steps at low noise levels
+  S_max: 1 #where the det. path is turned into stohastic (det. sampling at high noise levels)
+  S_noise: 1.007 #noise multiplier for gaussian
+
+  solver: heun
+  subvp: False #modifies sampling to sub vp variant 

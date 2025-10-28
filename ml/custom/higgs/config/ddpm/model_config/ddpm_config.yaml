@@ -1,0 +1,24 @@
+# ddpm_config.yaml
+# model_name: tinyunet_ddpm
+# img_shape: [2, 3, 3] #inchannels, w, h
+
+# network:
+#   in_channels: 2
+#   time_emb_dim: 64
+#   base_channels: 16
+#   channel_mults: [1, 2, 2]
+#   use_attention_at_level: [False, False, True]
+
+model_name: unet1d
+
+network:
+  base_dim: 64
+  depth: 4
+  time_emb_dim: 64
+
+diffuser: 
+  timesteps: 2000
+  scheduler: "cosine" #https://sander.ai/2024/06/14/noise-schedules.html
+
+scheduler:
+  mean_only: False 

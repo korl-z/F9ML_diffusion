@@ -1,0 +1,13 @@
+#ddpm_config.yaml
+model_name: unet1d_1k
+
+network:
+  base_dim: 512
+  depth: 3
+  time_emb_dim: 64
+
+diffuser: 
+  timesteps: 1000
+  scheduler: "cosine"
+
+vlb_weight: 0.01

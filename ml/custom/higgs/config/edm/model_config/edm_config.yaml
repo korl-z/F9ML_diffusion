@@ -1,0 +1,31 @@
+model_name: unet1d_EDMnoEMA
+img_shape: [2, 3, 3] #inchannels, w, h
+
+network: 
+  # in_channels: 2
+  # time_emb_dim: 32
+  # base_channels: 16
+  # channel_mults: [1, 2]
+  # use_attention_at_level: [False, True]
+
+  base_dim: 512
+  depth: 3
+  time_emb_dim: 64
+
+  # base_ch: 64
+  # depth: 4
+  # time_emb_dim: 64
+loss_fn:
+  P_mean: -1.2
+  P_std: 1.2
+
+sampler:
+  num_steps: 128
+  sigma_min: 0.002
+  sigma_max: 80.0
+  rho: 7.0
+  S_churn: 40 #adds stohasticity if > 0
+  S_min: 0.4 #use det. steps at low noise levels
+  S_max: 50 #where the det. path is turned into stohastic (det. sampling at high noise levels)
+  S_noise: 1.003 #noise multiplier for gaussian
+

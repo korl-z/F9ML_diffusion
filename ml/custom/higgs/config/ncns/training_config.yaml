@@ -1,0 +1,41 @@
+#training_conifg.yaml
+training_config:
+  batch_size: 512
+  max_epochs: 10
+  early_stop_patience: 6
+
+  compile: False  
+
+  optimizer:
+    name: Adam
+    lr: 1e-4
+    weight_decay: 1e-5
+
+  scheduler:
+    # use: false
+    # use: true
+    # scheduler_name: ReduceLROnPlateau
+    # scheduler_params:
+    #   mode: min
+    #   factor: 0.5
+    #   patience: 3
+    #   verbose: true
+    #   threshold: 1e-4
+    # monitor: val_epoch_loss
+    # interval: epoch
+    use: true
+    scheduler_name: CosineAnnealingLR
+    scheduler_params:
+      T_max: 20
+      eta_min: 0.0
+      last_epoch: -1
+      verbose: true
+    monitor: val_epoch_loss
+    interval: epoch
+
+  ema:
+    decay: 0.9999
+    start_step: 0
+
+#num of generated samples
+  test_sample_count: 200
