@@ -3,6 +3,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
+import pandas as pd
 
 from ml.common.stats.distances import Distances
 from ml.common.utils.loggers import setup_logger
@@ -100,11 +101,25 @@ class DistancesTest:
         # rescale back
         samples = rescale_back(samples, scalers_dct, selection)
 
+        first_scaler = list(scalers_dct.values())[0]
+
+        # Create a dict for rescale_back function
+        ref_samples_dict = {"ref": [bkg_ref_data]}
+        ref_samples_rescaled = rescale_back(ref_samples_dict, {"ref": first_scaler}, selection)
+        bkg_ref_data = ref_samples_rescaled["ref"][0]
+
         # add reference data to samples
         samples["ref"] = [bkg_ref_data]
 
         # make sure all samples have the same number of events
         samples = equalize_counts_to_ref(samples)
+
+        # CHECK: Are values in physical range?
+        print("\n=== Value ranges after rescale ===")
+        print(f"Ref min/max: {bkg_ref_data.min():.3f} / {bkg_ref_data.max():.3f}")
+        for key, val in samples.items():
+            if key != 'ref':
+                print(f"{key} min/max: {val[0].min():.3f} / {val[0].max():.3f}")
 
         return samples
 
@@ -121,8 +136,8 @@ class DistancesTest:
         # split data in half and calculate distances -> "baseline"
         for d_name in distances.keys():
             obj = Distances(
-                x[: n // 2, :],
-                x[n // 2 :, :],
+                x[: n // 2, :],      # First half
+                x[n // 2 :, :],      # Second half
                 mean_reduction=False,
                 reduce=True,
                 density_kwargs={"n_bins": n_bins},
@@ -151,8 +166,8 @@ class DistancesTest:
             for d_name in distances.keys():
                 for y_i in y:  # iterate over resampled data
                     obj = Distances(
-                        x[: n // 2, :],
-                        y_i,
+                        x[: n // 2, :], 
+                        y_i,             # Generated samples
                         mean_reduction=False,
                         reduce=True,
                         density_kwargs={"n_bins": n_bins},
@@ -182,6 +197,8 @@ class DistancesTest:
         for distance_name in self.distances.keys():
             mean_base, _ = self.d_results["baseline"][distance_name]
 
+            csv_data = {"feature": list(LABELS_MAP.values()), "baseline": mean_base}
+
             for i, model_name in enumerate(model_names):
                 if model_name == "baseline":
                     continue
@@ -190,6 +207,9 @@ class DistancesTest:
 
                 idx = np.argsort(np.abs(mean - mean_base))
                 mean, std = mean[idx], std[idx]
+
+                csv_data[f"{model_map[model_name]}_mean"] = mean
+                csv_data[f"{model_map[model_name]}_std"] = std
 
                 plt.plot(mean, label=model_map[model_name], color=f"C{i}", zorder=0, ls="-")
                 plt.fill_between(
@@ -205,7 +225,15 @@ class DistancesTest:
             if log_scale:
                 plt.yscale("log")
 
+            csv_data["feature"] = np.array(list(LABELS_MAP.values()), dtype=object)[idx]
+            csv_data["baseline"] = mean_base[idx]
+            df = pd.DataFrame(csv_data)
+            csv_path = f"{self.save_dir}/{distance_name}_data.csv"
+            df.to_csv(csv_path, index=False)
+            logging.info(f"[blue]Saved distance data to {csv_path}[/blue]")
+
             logging.info(f"[green]Saving distance plot for {distance_name}.[/green]")
+
 
             plt.legend(ncol=4)
             plt.xlabel("Feature")
@@ -229,17 +257,18 @@ if __name__ == "__main__":
         "unet1d_EDM2_model",
         "unet1d_EDMnoEMA_model",
 
-        "unet1d_EDMraw_model",
-        "unet1d_EDMraw_model",
+        # "unet1d_EDMraw_model",
+        # "unet1d_EDMraw_model",
         
-        "unet1dconv_EDMsimple_model",
+        # "unet1dconv_EDMsimple_model",
         "unet1dconv_VP_model",
     ]
     versions = [
                 2, 6,
                 3, 3, 1, 1, #v1 EDM noEMA
-                1, 2, #no. 2 is EDMsimple
-                1, 1 #1dconv models
+                # 1, 2, #no. 2 is EDMsimple
+                # 1, 
+                1 #1dconv models
                 ]
 
     distances_test = DistancesTest(
@@ -250,4 +279,4 @@ if __name__ == "__main__":
         resample=1,
     )
 
-    distances_test.plot_model_distances(log_scale=True, n_bins="auto")
+    distances_test.plot_model_distances(log_scale=True, n_bins=50)
