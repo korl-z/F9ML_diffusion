@@ -104,34 +104,49 @@ def add_data_mc_ratio(
     data_yerr,
     mc_hists,
     mc_yerrs,
+    mc_colors=None,
     ylim=(0.5, 2.0),
     lower_ylabel="Data / MC",
 ):
     """Add data/MC ratio plot to the axes as lower panel."""
     axin = ax.inset_axes(bounds=[0, -0.3, 1, 0.2])
 
-    mc_hist = np.sum(mc_hists, axis=0)
-    ratio_data_mc = data_hist / mc_hist
+    if mc_colors is not None:
+        dx = 0.5 * np.diff(bin_edges)
+        for mc_hist, mc_yerr, color in zip(mc_hists, mc_yerrs, mc_colors):
+            ratio = mc_hist / data_hist
+            safe_div_mc = np.divide(mc_yerr, mc_hist, out=np.zeros_like(mc_yerr), where=(mc_hist != 0))
+            safe_div_data = np.divide(data_yerr, data_hist, out=np.zeros_like(data_yerr), where=(data_hist != 0))
+            ratio_yerr = np.sqrt(safe_div_mc**2 + safe_div_data**2) * ratio
+            
+            axin = errorbar_plot(
+                axin,
+                x=bin_edges[:-1] + dx,
+                y=ratio,
+                xerr=dx,
+                yerr=ratio_yerr,
+                color=color,
+                markersize=3,
+            )
+        mc_hist = data_hist
+        mc_yerr = data_yerr
 
-    mc_yerr = np.sqrt(np.sum(mc_yerrs**2, axis=0))
-
-    #division by 0 error fix
-    safe_div_data = np.divide(data_yerr, data_hist, out=np.zeros_like(data_yerr), where=(data_hist != 0))
-    safe_div_mc   = np.divide(mc_yerr, mc_hist, out=np.zeros_like(mc_yerr), where=(mc_hist != 0))
-
-    ratio_yerr = np.sqrt(safe_div_data**2 + safe_div_mc**2) * ratio_data_mc
-
-
-    # ratio_yerr = np.sqrt((data_yerr / data_hist) ** 2 + (mc_yerr / mc_hist) ** 2) * ratio_data_mc
-
-    dx = 0.5 * np.diff(bin_edges)
-    axin = errorbar_plot(
-        axin,
-        x=bin_edges[:-1] + dx,
-        y=ratio_data_mc,
-        xerr=dx,
-        yerr=ratio_yerr,
-    )
+    else:
+        mc_hist = np.sum(mc_hists, axis=0)
+        ratio_data_mc = data_hist / mc_hist
+        mc_yerr = np.sqrt(np.sum(mc_yerrs**2, axis=0))
+        safe_div_data = np.divide(data_yerr, data_hist, out=np.zeros_like(data_yerr), where=(data_hist != 0))
+        safe_div_mc = np.divide(mc_yerr, mc_hist, out=np.zeros_like(mc_yerr), where=(mc_hist != 0))
+        ratio_yerr = np.sqrt(safe_div_data**2 + safe_div_mc**2) * ratio_data_mc
+        
+        dx = 0.5 * np.diff(bin_edges)
+        axin = errorbar_plot(
+            axin,
+            x=bin_edges[:-1] + dx,
+            y=ratio_data_mc,
+            xerr=dx,
+            yerr=ratio_yerr,
+        )
 
     axin.set_xlim(ax.get_xlim())
     axin.axhline(1, lw=1, c="k", ls="--", alpha=0.8)
@@ -141,14 +156,12 @@ def add_data_mc_ratio(
     ax.set_xlabel("")
 
     axin.xaxis.set_tick_params(pad=10)
-
     axin.set_ylabel(lower_ylabel)
 
     if ylim:
         axin.set_ylim(ylim)
 
     data_mc_yerr_ratio = mc_yerr / mc_hist
-
     add_hatched_error(
         axin,
         bin_edges,
@@ -158,13 +171,11 @@ def add_data_mc_ratio(
 
     return ax, axin
 
-
 class HEPPlot:
     def __init__(self, data, mc, mc_err, bin_edges):
         self._check_valid(data, mc, mc_err, bin_edges)
 
         self.data = data
-        # convert lists to np.array
         self.mc, self.mc_err = np.array(mc), np.array(mc_err)
 
         self.bin_edges = bin_edges
