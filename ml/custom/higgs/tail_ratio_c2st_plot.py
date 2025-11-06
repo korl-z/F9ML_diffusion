@@ -1,11 +1,7 @@
-import torch
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
-import mlflow
-
-local_mlruns_path = r"C:/Users/Uporabnik/Documents/IJS-F9/korlz/ppt/data/models/mlruns"
-mlflow.set_tracking_uri(f"file:///{local_mlruns_path}")
 
 # Apply consistent styling
 plt.rcParams.update(
@@ -13,198 +9,260 @@ plt.rcParams.update(
 )
 set1_list = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#f781bf", "#999999"]
 
-class DensityRatioAnalysis:
-    def __init__(self, c2st_mlflow_path, device="cpu"):
-        """
-        Initialize density ratio analysis with MLflow saved C2ST classifier.
-        
-        Parameters
-        ----------
-        c2st_mlflow_path : str
-            Path to MLflow artifacts directory containing the C2ST model
-            e.g., "/data0/korlz/f9-ml/ml/custom/higgs/mlruns/406586685500999771/1f072e2af32944dfb1e9473fca5f43e6"
-        device : str
-            Device to use for inference
-        """
-        self.device = device
-        self.c2st_model = self._load_c2st_model(c2st_mlflow_path)
-        
+# Features list (matching paper)
+features_list = [
+    r"lepton $p_T$", r"lepton $\eta$", "missing energy",
+    r"jet1 $p_T$", r"jet1 $\eta$", r"jet2 $p_T$", r"jet2 $\eta$",
+    r"jet3 $p_T$", r"jet3 $\eta$", r"jet4 $p_T$", r"jet4 $\eta$",
+    r"$m_{jj}$", r"$m_{jjj}$", r"$m_{\ell\nu}$", r"$m_{j\ell\nu}$",
+    r"$m_{b\bar{b}}$", r"$m_{Wb\bar{b}}$", r"$m_{WWb\bar{b}}$"
+]
 
-    def _load_c2st_model(self, model_uri):
+class DensityRatioPlotter:
+    def __init__(self, data_dir):
         """
-        Load C2ST classifier from MLflow using a model URI.
+        Initialize plotter with data directory.
         
         Parameters
         ----------
-        model_uri : str
-            MLflow model URI, e.g., "models:/my_c2st_model/1" or "models:/my_c2st_model/Staging"
+        data_dir : str or Path
+            Directory containing the saved .npy and .csv files
         """
-        print(f"Loading C2ST model from MLflow URI: {model_uri}")
+        self.data_dir = Path(data_dir)
         
-        # Load using the correct MLflow URI
-        model = mlflow.pytorch.load_model(model_uri, map_location=self.device)
-        model.eval()
+        # Load all data
+        self.r_x_mc = np.load(self.data_dir / "r_x_mc.npy")
+        self.r_x_ml = np.load(self.data_dir / "r_x_ml.npy")
+        self.tail_mask_mc = np.load(self.data_dir / "tail_mask_mc.npy")
+        self.tail_mask_ml = np.load(self.data_dir / "tail_mask_ml.npy")
+        self.mc_test_data = np.load(self.data_dir / "mc_test_data.npy")
+        self.ml_test_data = np.load(self.data_dir / "ml_test_data.npy")
         
-        return model
+        # Load histogram data
+        self.hist_data = pd.read_csv(self.data_dir / "density_ratio_data.csv")
+        self.metadata = pd.read_csv(self.data_dir / "density_ratio_data_metadata.csv")
+        
+        print(f"Loaded data:")
+        print(f"  MC events: {len(self.mc_test_data)}")
+        print(f"  ML events: {len(self.ml_test_data)}")
+        print(f"  MC tail events: {np.sum(self.tail_mask_mc)} ({np.sum(self.tail_mask_mc)/len(self.tail_mask_mc)*100:.2f}%)")
+        print(f"  ML tail events: {np.sum(self.tail_mask_ml)} ({np.sum(self.tail_mask_ml)/len(self.tail_mask_ml)*100:.2f}%)")
     
-    def get_density_ratio(self, data):
+    def plot_density_ratio_distribution(self, save_path=None):
         """
-        Calculate density ratio r(x) = P_ML(x) / P_MC(x) from C2ST classifier.
-        
-        Uses Equation 24 from paper:
-        r(x) = exp(σ^{-1}[p(y=1|x)])
-        
-        Parameters
-        ----------
-        data : np.ndarray
-            Input data [N, D]
-            
-        Returns
-        -------
-        r_x : np.ndarray
-            Density ratio for each sample [N,]
+        Plot Figure 14: Density ratio distribution.
         """
-        # Convert to tensor
-        if isinstance(data, np.ndarray):
-            data_tensor = torch.FloatTensor(data)
-        else:
-            data_tensor = data
-            
-        data_tensor = data_tensor.to(self.device)
+        tail_cut_low = self.metadata['tail_cut_low'].values[0]
+        tail_cut_high = self.metadata['tail_cut_high'].values[0]
         
-        with torch.no_grad():
-            # Get model output
-            output = self.c2st_model(data_tensor)
-            
-            # Check if output is logits or probabilities
-            # If sigmoid is already applied, we need to convert back to logits
-            if output.min() >= 0 and output.max() <= 1:
-                # Output is probability, convert to logits
-                # logit(p) = log(p / (1-p))
-                eps = 1e-10  # Numerical stability
-                output = torch.log((output + eps) / (1 - output + eps))
-            
-            # Calculate r(x) = exp(logit)
-            r_x = torch.exp(output).cpu().numpy().flatten()
-        
-        return r_x
-    
-    def plot_density_ratio_distribution(self, mc_data, ml_data, 
-                                       tail_cut_low=0.94, tail_cut_high=1.08,
-                                       save_path=None):
-        """
-        Plot density ratio distribution (Paper's Figure 14).
-        
-        Parameters
-        ----------
-        mc_data : np.ndarray
-            MC test data [N, D]
-        ml_data : np.ndarray
-            ML generated test data [N, D]
-        tail_cut_low : float
-            Lower threshold for tail events
-        tail_cut_high : float
-            Upper threshold for tail events
-        save_path : str, optional
-            Path to save figure
-        """
-        print("Calculating density ratios...")
-        r_x_mc = self.get_density_ratio(mc_data)
-        r_x_ml = self.get_density_ratio(ml_data)
-        
-        print(f"MC r(x) range: [{r_x_mc.min():.3f}, {r_x_mc.max():.3f}]")
-        print(f"ML r(x) range: [{r_x_ml.min():.3f}, {r_x_ml.max():.3f}]")
-        
-        # Calculate fraction in tails
-        mc_tail_frac = np.sum((r_x_mc < tail_cut_low) | (r_x_mc > tail_cut_high)) / len(r_x_mc)
-        ml_tail_frac = np.sum((r_x_ml < tail_cut_low) | (r_x_ml > tail_cut_high)) / len(r_x_ml)
-        
-        print(f"Fraction in tails - MC: {mc_tail_frac*100:.2f}%, ML: {ml_tail_frac*100:.2f}%")
-        
-        # Plot
         fig, ax = plt.subplots(1, 1, figsize=(3.47412, 3.47412 * 0.8))
         
-        # Use common bins
-        all_r_x = np.concatenate([r_x_mc, r_x_ml])
-        bin_edges = np.histogram_bin_edges(all_r_x, bins=100, 
-                                           range=(all_r_x.min(), all_r_x.max()))
+        # Plot as step histograms using bin edges
+        bin_edges_left = self.hist_data['bin_edges_left'].values
+        bin_edges_right = self.hist_data['bin_edges_right'].values
+        bin_edges = np.append(bin_edges_left, bin_edges_right[-1])
         
-        ax.hist(r_x_mc, bins=bin_edges, histtype='step', 
-                label='MC c2st', color=set1_list[1], lw=1.5, density=True, zorder=2)
-        ax.hist(r_x_ml, bins=bin_edges, histtype='step', 
-                label='ML c2st', color=set1_list[0], lw=1.5, density=True, zorder=3)
+        ax.hist(bin_edges[:-1], bins=bin_edges, weights=self.hist_data['hist_mc'].values,
+                histtype='step', label='MC c2st', color=set1_list[1], lw=1.5, zorder=2)
+        ax.hist(bin_edges[:-1], bins=bin_edges, weights=self.hist_data['hist_ml'].values,
+                histtype='step', label='ML c2st', color=set1_list[0], lw=1.5, zorder=3)
         
+
+        ax.axvspan(bin_edges[0], tail_cut_low, color='gray', alpha=0.15, zorder=0)
+        ax.axvspan(tail_cut_high, bin_edges[-1], color='gray', alpha=0.15, zorder=0)
         # Add vertical lines for tail cuts
         ax.axvline(tail_cut_low, color='gray', ls='--', lw=1, alpha=0.7, 
                   label='tail cut', zorder=1)
         ax.axvline(tail_cut_high, color='gray', ls='--', lw=1, alpha=0.7, zorder=1)
+        ax.axvline(1, color='k', ls='-', lw=1, alpha=0.7, zorder=1)
         
         ax.set_xlabel(r'$r(x)$', fontsize=10)
         ax.set_ylabel('density [a.u.]', fontsize=10)
         ax.legend(fontsize=8, framealpha=0.9, loc='upper right')
+        ax.set_xlim(bin_edges[0], bin_edges[-1])
         
-        plt.tight_layout()
+        plt.tight_layout(pad=0.3)
+        ax.set_xlim(0.94, 1.06)
         
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
-            print(f"Saved to: {save_path}")
+            print(f"Saved Figure 14 to: {save_path}")
         
         plt.show()
-        
-        return r_x_mc, r_x_ml
     
-    def get_tail_events(self, data, r_x, tail_cut_low=0.94, tail_cut_high=1.08):
+    def plot_tail_kinematic_distributions(self, save_path=None):
         """
-        Extract events in the tails of density ratio distribution.
+        Plot Figure 15: Kinematic distributions for tail events.
+        """
+        D = self.mc_test_data.shape[1]
+        ncols = 6
+        nrows = int(np.ceil(D / ncols))
         
-        Parameters
-        ----------
-        data : np.ndarray
-            Input data [N, D]
-        r_x : np.ndarray
-            Density ratios [N,]
-        tail_cut_low : float
-            Lower threshold
-        tail_cut_high : float
-            Upper threshold
+        fig, axs = plt.subplots(nrows, ncols, figsize=(ncols * 3.47412, nrows * 3.47412 * 0.8))
+        ax_flat = np.array(axs).reshape(-1)
+        
+        tail_cut_low = self.metadata['tail_cut_low'].values[0]
+        tail_cut_high = self.metadata['tail_cut_high'].values[0]
+        
+        # Get tail data
+        ml_tail_low = self.ml_test_data[self.r_x_ml < tail_cut_low]
+        ml_tail_high = self.ml_test_data[self.r_x_ml > tail_cut_high]
+        
+        for feat_idx in range(D):
+            ax = ax_flat[feat_idx]
             
-        Returns
-        -------
-        tail_mask : np.ndarray
-            Boolean mask for tail events
-        tail_data : np.ndarray
-            Data in tails
+            # MC reference (all events)
+            mc_data = self.mc_test_data[:, feat_idx]
+            bin_edges = np.histogram_bin_edges(mc_data, bins=50)
+            
+            # Plot MC as filled histogram
+            ax.hist(mc_data, bins=bin_edges, density=True, 
+                   histtype='bar', color='gray', alpha=0.4, 
+                   label='MC', linewidth=0)
+            # ax.hist(mc_data, bins=bin_edges, density=True, 
+            #        histtype='step', color='black', alpha=0.8, linewidth=1.5)
+            
+            # Plot ML tail events
+            if len(ml_tail_low) > 0:
+                ax.hist(ml_tail_low[:, feat_idx], bins=bin_edges, density=True,
+                       histtype='step', color=set1_list[1], lw=1.5,
+                       label=f'ML tail cut $< {tail_cut_low}$', alpha=0.8)
+            
+            if len(ml_tail_high) > 0:
+                ax.hist(ml_tail_high[:, feat_idx], bins=bin_edges, density=True,
+                       histtype='step', color=set1_list[0], lw=1.5,
+                       label=f'ML tail cut $> {tail_cut_high}$', alpha=0.8)
+            
+            # ax.set_yscale('log')
+            ax.set_xlabel(features_list[feat_idx], fontsize=9)
+            ax.set_ylabel('Density', fontsize=9)
+            
+            # Add legend only to first plot
+            if feat_idx == 0:
+                ax.legend(loc='upper right', fontsize=7, framealpha=0.9)
+        
+        # Turn off unused subplots
+        for j in range(D, len(ax_flat)):
+            ax_flat[j].axis('off')
+        
+        plt.tight_layout(pad=0.5)
+        
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Saved Figure 15 to: {save_path}")
+        
+        plt.show()
+    
+    def plot_tail_kinematic_distributions_alternative(self, save_path=None):
         """
-        tail_mask = (r_x < tail_cut_low) | (r_x > tail_cut_high)
-        tail_data = data[tail_mask]
+        Alternative version: Show MC vs ML for tail events only.
+        """
+        D = self.mc_test_data.shape[1]
+        ncols = 6
+        nrows = int(np.ceil(D / ncols))
         
-        print(f"Total events: {len(data)}")
-        print(f"Tail events: {np.sum(tail_mask)} ({np.sum(tail_mask)/len(data)*100:.2f}%)")
+        fig, axs = plt.subplots(nrows, ncols, figsize=(ncols * 3.47412, nrows * 3.47412 * 0.8))
+        ax_flat = np.array(axs).reshape(-1)
         
-        return tail_mask, tail_data
+        # Get tail data for both MC and ML
+        mc_tail = self.mc_test_data[self.tail_mask_mc]
+        ml_tail = self.ml_test_data[self.tail_mask_ml]
+        
+        for feat_idx in range(D):
+            ax = ax_flat[feat_idx]
+            
+            # Get data range from all MC data
+            mc_all = self.mc_test_data[:, feat_idx]
+            bin_edges = np.histogram_bin_edges(mc_all, bins=50)
+            
+            # Plot MC all events as reference
+            ax.hist(mc_all, bins=bin_edges, density=True,
+                   histtype='stepfilled', color='gray', alpha=0.3,
+                   label='MC (all)', linewidth=0)
+            
+            # Plot tail events
+            if len(mc_tail) > 0:
+                ax.hist(mc_tail[:, feat_idx], bins=bin_edges, density=True,
+                       histtype='step', color=set1_list[1], lw=1.5,
+                       label='MC tail', alpha=0.8)
+            
+            if len(ml_tail) > 0:
+                ax.hist(ml_tail[:, feat_idx], bins=bin_edges, density=True,
+                       histtype='step', color=set1_list[0], lw=1.5,
+                       label='ML tail', alpha=0.8)
+            
+            # ax.set_yscale('log')
+            ax.set_xlabel(features_list[feat_idx], fontsize=9)
+            ax.set_ylabel('Density', fontsize=9)
+            
+            if feat_idx == 0:
+                ax.legend(loc='upper right', fontsize=7, framealpha=0.9)
+        
+        for j in range(D, len(ax_flat)):
+            ax_flat[j].axis('off')
+        
+        plt.tight_layout(pad=0.5)
+        
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Saved alternative Figure 15 to: {save_path}")
+        
+        plt.show()
+    
+    def print_summary(self):
+        """Print summary statistics."""
+        print("\n" + "="*70)
+        print("DENSITY RATIO ANALYSIS SUMMARY")
+        print("="*70)
+        
+        meta = self.metadata.iloc[0]
+        
+        print(f"\nTail Cuts:")
+        print(f"  Lower: {meta['tail_cut_low']:.3f}")
+        print(f"  Upper: {meta['tail_cut_high']:.3f}")
+        
+        print(f"\nDensity Ratio Ranges:")
+        print(f"  MC: [{meta['mc_r_x_min']:.3f}, {meta['mc_r_x_max']:.3f}]")
+        print(f"  ML: [{meta['ml_r_x_min']:.3f}, {meta['ml_r_x_max']:.3f}]")
+        
+        print(f"\nFraction in Tails:")
+        print(f"  MC: {meta['mc_tail_frac']*100:.2f}%")
+        print(f"  ML: {meta['ml_tail_frac']*100:.2f}%")
+        
+        print(f"\nTail Event Counts:")
+        print(f"  MC: {np.sum(self.tail_mask_mc):,} / {len(self.tail_mask_mc):,}")
+        print(f"  ML: {np.sum(self.tail_mask_ml):,} / {len(self.tail_mask_ml):,}")
+        
+        print("\n" + "="*70)
 
 
-# Example usage
 if __name__ == "__main__":
-    # --- THIS IS HOW YOU DEFINE THE MODEL TO LOAD ---
-    # The URI format is "models:/<REGISTERED_MODEL_NAME>/<VERSION>"
-    registered_model_name = "BinaryClassifier_unet1d_ddpm_model_c2st_gen_model_all"
-    model_version = 6 # Example version
-    c2st_model_uri = f"models:/{registered_model_name}/{model_version}"
-
-    mc_test_data = np.load(r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\HIGGS\HIGGS_data_hold_partition_2.npy") 
-    ml_test_data = np.load(r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\HIGGS\HIGGS_generated_unet1d_ddpm_model6_6.npy")  
+    data_dir = Path(r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\data\ratiotest")
     
-    # Initialize analysis
-    density_analysis = DensityRatioAnalysis(c2st_model_uri, device="cpu")
+    plotter = DensityRatioPlotter(data_dir)
     
-    # Plot density ratio distribution (Figure 14)
-    r_x_mc, r_x_ml = density_analysis.plot_density_ratio_distribution(
-        mc_test_data, 
-        ml_test_data,
-        save_path="density_ratio_distribution.pdf"
+    plotter.print_summary()
+    
+    # Create output directory for plots
+    output_dir = Path(r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\plots")
+    output_dir.mkdir(exist_ok=True, parents=True)
+    
+    # # Plot Figure 14: Density ratio distribution
+    # print("\nGenerating Figure 14...")
+    # plotter.plot_density_ratio_distribution(
+        # save_path=output_dir / "figure14_density_ratio.pdf"
+    # )
+    
+    # Plot Figure 15: Kinematic distributions for tail events
+    print("\nGenerating Figure 15...")
+    plotter.plot_tail_kinematic_distributions(
+        save_path=output_dir / "figure15_tail_kinematics.pdf"
     )
     
-    # Get tail events for further analysis (Figure 15)
-    tail_mask_ml, tail_data_ml = density_analysis.get_tail_events(ml_test_data, r_x_ml)
-    tail_mask_mc, tail_data_mc = density_analysis.get_tail_events(mc_test_data, r_x_mc)
+    # # Alternative version (optional)
+    # print("\nGenerating Figure 15 alternative...")
+    # plotter.plot_tail_kinematic_distributions_alternative(
+    #     save_path=output_dir / "figure15_tail_kinematics_alt.pdf"
+    # )
+    
+    print(f"\nAll plots saved to: {output_dir}")
