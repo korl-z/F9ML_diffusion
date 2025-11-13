@@ -2,7 +2,7 @@ training_config:
   max_epochs: 150
 
   loss: BCELoss
-  early_stop_patience: 5
+  early_stop_patience: 10
 
   optimizer:
     name: Adam

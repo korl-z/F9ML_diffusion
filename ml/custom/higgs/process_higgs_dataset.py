@@ -5,6 +5,8 @@ import pandas as pd
 from sklearn.utils import shuffle
 from ml.common.data_utils.processors import FeatureSelector, NpyProcessor
 from ml.common.data_utils.downloadutils import url_download
+from ml.common.nn.gen_model_sampler import GenModelSampler
+
 
 class HIGGSNpyProcessor(NpyProcessor):
     def __init__(
@@ -194,6 +196,147 @@ class HIGGSFeatureSelector(FeatureSelector):
         return super().select_features(data)
 
 
+class CatGenerated:
+    def __init__(self, model_name, ver=-1, cat_label=0, save_dir="/data0/korlz/f9-ml/ml/data/HIGGS/", file_name="HIGGS_generated"):
+        self.model_name = model_name
+        self.ver = ver
+        self.cat_label = cat_label
+        self.save_dir, self.file_name = save_dir, file_name
+
+    def __call__(self, data, selection, scalers, *args, **kwargs):
+        return self.cat_gen(data, selection), selection, scalers
+
+    def cat_gen(self, data, selection):
+        label_idx = selection[selection["type"] == "label"].index[0]
+
+        label_mask = data[:, label_idx] == self.cat_label
+        data_label, data_other = data[label_mask], data[~label_mask]
+
+        N = len(data_other)
+
+        # BPK
+        N_mc_org = len(data_label)  # why other?
+        N_mc = 3 * N_mc_org // 4  # // 2 originally
+        N_gen = N_mc_org - N_mc  # equal originally
+
+        sampler = GenModelSampler(self.model_name, versions=self.ver,save_dir=self.save_dir, file_name=self.file_name)
+        data_gen = sampler.sample(N_gen, resample=1)[self.model_name][0]
+
+        data_gen_labels = np.ones(len(data_gen)) * self.cat_label
+        data_gen = np.insert(data_gen, label_idx, data_gen_labels, axis=1)
+
+        logging.info(f"Concatenating {len(data_gen)} generated data with {N} other data points!")
+
+        # replace half of MC with some label (0 for bkg) with generated data
+        # both need to have same scaling!
+        cat = np.concatenate([data_gen, data_label[:N_mc], data_other], axis=0)
+
+        return shuffle(cat)
+
+
+class CatGeneratedFull:
+    """Replace ALL MC background with ML-generated background."""
+    def __init__(self, model_name, ver=-1, cat_label=0, save_dir="/data0/korlz/f9-ml/ml/data/HIGGS/", file_name="HIGGS_generated"):
+        self.model_name = model_name
+        self.ver = ver
+        self.cat_label = cat_label
+        self.save_dir = save_dir
+        self.file_name = file_name
+    
+    def __call__(self, data, selection, scalers, *args, **kwargs):
+        return self.cat_gen(data, selection), selection, scalers
+    
+    def cat_gen(self, data, selection):
+        label_idx = selection[selection["type"] == "label"].index[0]
+        
+        # split by label
+        label_mask = data[:, label_idx] == self.cat_label
+        data_label = data[label_mask]      # MC background (will be replaced)
+        data_other = data[~label_mask]     # MC signal 
+        
+        # 100% MC bkg
+        N_mc_org = len(data_label)
+        N_gen = N_mc_org  # Replace ALL MC background
+        
+        # sample from gen model
+        sampler = GenModelSampler(
+            self.model_name, 
+            versions=self.ver,
+            save_dir=self.save_dir, 
+            file_name=self.file_name
+        )
+        data_gen = sampler.sample(N_gen, resample=1)[self.model_name][0]
+        
+        data_gen_labels = np.ones(len(data_gen)) * self.cat_label
+        data_gen = np.insert(data_gen, label_idx, data_gen_labels, axis=1)
+        
+        logging.info(f"Replacing {N_mc_org} MC background with {N_gen} ML-generated background!")
+        logging.info(f"Keeping {len(data_other)} MC signal events.")
+        
+        # concat only generated bkg + MC sig
+        cat = np.concatenate([data_gen, data_other], axis=0)
+        
+        return shuffle(cat)
+    
+class CatGeneratedLimited:
+    """Use limited ML-generated background, downsample signal to match."""
+    
+    def __init__(self, model_name, ver=-1, cat_label=0, N_gen_available=1000000,
+                 save_dir="/data0/korlz/f9-ml/ml/data/HIGGS/", file_name="HIGGS_generated"):
+        self.model_name = model_name
+        self.ver = ver
+        self.cat_label = cat_label
+        self.N_gen_available = N_gen_available
+        self.save_dir = save_dir
+        self.file_name = file_name
+    
+    def __call__(self, data, selection, scalers, *args, **kwargs):
+        return self.cat_gen(data, selection), selection, scalers
+    
+    def cat_gen(self, data, selection):
+        label_idx = selection[selection["type"] == "label"].index[0]
+        
+        # Split by label
+        label_mask = data[:, label_idx] == self.cat_label
+        data_label = data[label_mask]      # MC background
+        data_other = data[~label_mask]     # MC signal
+        
+        N_mc_bkg_original = len(data_label)
+        N_mc_sig_original = len(data_other)
+        
+        # Use all available generated samples
+        N_gen = min(self.N_gen_available, N_mc_bkg_original)
+        
+        # Downsample signal to maintain similar background/signal ratio
+        # Original ratio: N_mc_sig / N_mc_bkg
+        # New signal count: N_gen * (N_mc_sig / N_mc_bkg)
+        N_sig_keep = int(N_gen * (N_mc_sig_original / N_mc_bkg_original))
+        
+        logging.info(f"Original dataset: {N_mc_bkg_original} bkg + {N_mc_sig_original} sig")
+        logging.info(f"New dataset: {N_gen} ML bkg + {N_sig_keep} MC sig")
+        logging.info(f"Ratio preserved: {N_sig_keep/N_gen:.3f} (original: {N_mc_sig_original/N_mc_bkg_original:.3f})")
+        
+        # Sample from generative model
+        sampler = GenModelSampler(
+            self.model_name,
+            versions=self.ver,
+            save_dir=self.save_dir,
+            file_name=self.file_name
+        )
+        data_gen = sampler.sample(N_gen, resample=1)[self.model_name][0]
+        
+        # Add label column to generated data
+        data_gen_labels = np.ones(len(data_gen)) * self.cat_label
+        data_gen = np.insert(data_gen, label_idx, data_gen_labels, axis=1)
+        
+        # Downsample signal
+        data_sig_subset = data_other[:N_sig_keep]
+        
+        # Concatenate
+        cat = np.concatenate([data_gen, data_sig_subset], axis=0)
+        
+        return shuffle(cat)
+    
 
 if __name__ == "__main__":
     from ml.common.data_utils.processors import Preprocessor, ProcessorChainer

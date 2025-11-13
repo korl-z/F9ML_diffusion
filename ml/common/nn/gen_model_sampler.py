@@ -80,7 +80,7 @@ class GenModelSampler:
         module = fetch_registered_module(model_name, ver, device="cuda")
         return module.model.eval()
 
-    def _sample(self, N, resample, chunks=None, **kwargs):
+    def _sample(self, N, resample, chunks=100000, **kwargs):
         """Helper function to sample from the generative models."""
         samples, npy_files = dict(), dict()
 
@@ -143,7 +143,7 @@ class GenModelSampler:
 
         return samples, npy_files
 
-    def sample(self, N, resample=1, chunks=None, return_npy_files=False, **kwargs):
+    def sample(self, N, resample=1, chunks=100000, return_npy_files=False, **kwargs):
         """Sample from the generative models.
 
         Parameters

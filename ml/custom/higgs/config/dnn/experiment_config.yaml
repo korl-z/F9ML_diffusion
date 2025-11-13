@@ -2,7 +2,7 @@ experiment_config:
   experiment_name: null
   run_name: null
   save_dir: ./mlruns
-  model_postfix: null
+  model_postfix: "sigbkg_MC_gauss_rank"
 
   seed: 123
   accelerator: gpu

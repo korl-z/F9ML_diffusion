@@ -1,4 +1,4 @@
-model_name: BinaryClassifier
+model_name: BinaryClassifier_full
 model: ResMLP
 input_dim: 18
 hidden_dim: [512, 512, 512]
