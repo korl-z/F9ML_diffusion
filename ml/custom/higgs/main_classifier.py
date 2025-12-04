@@ -81,9 +81,10 @@ def main(config):
     else:
         pre = Preprocessor(**data_conf["preprocessing"])
 
-    cat_gen = CatGeneratedFull(gen_model_name, gen_model_ver, cat_label=0)
+    # cat_gen = CatGeneratedFull(gen_model_name, gen_model_ver, cat_label=0)
 
-    chainer = ProcessorChainer(npy_proc, f_sel, pre, cat_gen)
+    # chainer = ProcessorChainer(npy_proc, f_sel, pre, cat_gen)
+    chainer = ProcessorChainer(npy_proc, f_sel, pre)
 
     # create a data module
     dm = HiggsDataModule(chainer, **data_conf["dataloader_config"])

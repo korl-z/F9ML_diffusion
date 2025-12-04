@@ -35,7 +35,7 @@ class DDPMModule(Module):
             timesteps=self.model_conf["diffuser"]["timesteps"],
             scheduler=self.model_conf["diffuser"]["scheduler"],
             device="cuda",
-        )  # fixed device to cpu for now
+        ) 
         self.loss_fn = DDPMLoss(diffuser=self.diffuser)
 
         # wrapper model, always the same
@@ -53,7 +53,7 @@ class DDPMModule(Module):
         self.log(
             "train_loss",
             loss,
-            on_step=True,
+            on_step=False,
             on_epoch=True,
             prog_bar=True,
             batch_size=x0.size(0),

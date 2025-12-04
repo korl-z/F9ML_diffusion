@@ -9,12 +9,12 @@
 #   channel_mults: [1, 2, 2]
 #   use_attention_at_level: [False, False, True]
 
-model_name: unet1d
+model_name: unet1dconv
 
 network:
   base_dim: 64
-  depth: 4
-  time_emb_dim: 64
+  depth: 3
+  time_emb_dim: 32
 
 diffuser: 
   timesteps: 2000

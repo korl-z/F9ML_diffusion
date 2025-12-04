@@ -45,9 +45,12 @@ class DDPMTracker(Tracker, Callback):
         else:
             raise ValueError(f"Stage must be one of ['val', 'test', None], got {stage} instead!")
 
-        self.reference = dl.dataset.X.cpu().numpy()
+        reference = dl.dataset.X.cpu().numpy()
 
-        self.generated = self.module.model.sample(self.reference.shape[0])
+        self.generated = self.module.model.sample(reference.shape[0]//10)
+
+        num_generated_features = self.generated.shape[1]
+        self.reference = reference[:, :num_generated_features]
 
         torch.cuda.empty_cache()
 
@@ -67,14 +70,13 @@ class DDPMTracker(Tracker, Callback):
     @handle_plot_exception
     def gen_vs_ref_plot(self):
         D = self.generated.shape[1]
-        ncols = 6
+        ncols = 4
         nrows = int(np.ceil(D / ncols))
 
         fig, axs = plt.subplots(nrows, ncols, figsize=(4 * ncols, 4 * nrows))
         fig.subplots_adjust(hspace=0.55, wspace=0.2, left=0.03, right=0.98, top=0.97, bottom=0.1)
-        ax_flat = np.array(axs).reshape(-len(axs)) # Use -len(axs) to avoid potential errors
+        ax_flat = np.array(axs).reshape(-len(axs)) 
 
-        # A single, clean call to the new plotting function
         two_sample_plot(
             A=self.reference,
             B=self.generated,
@@ -82,7 +84,6 @@ class DDPMTracker(Tracker, Callback):
             n_bins=self.n_bins,
         )
 
-        # Deactivate any unused subplots
         for j in range(D, len(ax_flat)):
             ax_flat[j].axis("off")
 

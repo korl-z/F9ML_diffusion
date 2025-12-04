@@ -25,7 +25,26 @@ class TimeEmbedding(nn.Module):
         embeddings = torch.cat((embeddings.sin(), embeddings.cos()), dim=-1)
         return embeddings
 
+class TimeEmbedding2(nn.Module):
+    """
+    Standard sinusoidal embedding, using log(t+1) for stability.
+    """
+    def __init__(self, dim):
+        super().__init__()
+        self.dim = dim
 
+    def forward(self, t):
+        if t.ndim == 0:
+            t = t.unsqueeze(0)
+        
+        half_dim = self.dim // 2
+        embeddings = math.log(10000) / (half_dim - 1)
+        embeddings = torch.exp(torch.arange(half_dim, device=t.device) * -embeddings)
+        # Using log(t + 1) for numerical stability at t=0
+        embeddings = torch.log(t + 1).unsqueeze(1) * embeddings.unsqueeze(0)
+        embeddings = torch.cat((embeddings.sin(), embeddings.cos()), dim=-1)
+        return embeddings
+    
 # ----------------------------------------------------------------------------
 # Magnitude-preserving Fourier features (Equation 75). (karras 2024)
 class MPFourier(torch.nn.Module):

@@ -204,7 +204,7 @@ def get_versions(versions, model_dct):
 
     return _versions
 
-def sample_from_models(model_dct, N, ver=None, chunks=20, resample=None, return_npy_files=False):
+def sample_from_models(model_dct, N, ver=None, chunks=100, resample=None, return_npy_files=False):
     L.seed_everything(workers=True)
 
     if type(N) is not int:

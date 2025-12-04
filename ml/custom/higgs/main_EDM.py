@@ -24,7 +24,7 @@ from process_higgs_dataset import (
 )
 from ml.common.utils.loggers import timeit, log_num_trainable_params, setup_logger
 from ml.common.utils.utils import PFEMACallback
-from ml.common.nn.unet import MPTinyUNet, UNet1D, UNet1Dconv
+from ml.common.nn.unet import MPTinyUNet, UNet1D, UNet1Dconv, DhariwalUNet
 
 # custom imports
 from ml.diffusion.EDM.lightning_EDM import EDMModule, VPModule, VEModule, EDM2Module
@@ -110,10 +110,10 @@ def main(cfg: DictConfig) -> None:
         experiment_conf, tracker_path="/data0/korlz/f9-ml/ml/custom/higgs/metrics/"
     )
 
-    model = UNet1D(
-        data_dim=data_conf["input_dim"],
-        **model_conf["network"],
-    )
+    # model = UNet1D( #currently the best working one. 
+    #     data_dim=data_conf["input_dim"],
+    #     **model_conf["network"],
+    # )
 
     # model = MPTinyUNet(
     #     **model_conf["network"],
@@ -123,6 +123,13 @@ def main(cfg: DictConfig) -> None:
     #     data_dim=data_conf["input_dim"],
     #     **model_conf["network"],
     # )
+
+    model = DhariwalUNet(
+        **model_conf["network"],
+        # These are fixed based on your data structure
+        label_dim=0, # Assuming no class labels
+        augment_dim=0, # Assuming no augmentation labels
+    )
 
     logging.info("Done model setup.")
     log_num_trainable_params(model, unit="M")

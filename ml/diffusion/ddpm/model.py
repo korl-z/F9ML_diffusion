@@ -42,6 +42,22 @@ class DDPMPrecond(nn.Module):
         eps_pred = self.net(x, t)  # no actual preconditioning applied
         return eps_pred
 
+        # x = x.to(torch.float32) #preconditioning attemp, for the conv net
+
+        # sigma = t.to(torch.float32).reshape(-1, 1)
+
+        # c_skip = 1
+        # c_out = -sigma
+        # c_in = 1 / (sigma**2 + 1).sqrt()
+
+        # F_x = self.net(
+        #     c_in * x,
+        #     t
+        # )
+
+        # D_x = c_skip * x + c_out * F_x
+        # return D_x
+    
     @torch.no_grad()
     def _run_sampler(self, latents, mean_only=False):
         """Internal helper that runs the core DDPM sampling loop."""
@@ -70,7 +86,7 @@ class DDPMPrecond(nn.Module):
                 x = mean
         return x
 
-    def sample(self, num_samples: int, chunks: int = 10, mean_only: bool = False):
+    def sample(self, num_samples: int, chunks: int = 100, mean_only: bool = False):
         """
         Method for generating samples in chunks.
         """

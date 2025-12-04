@@ -14,68 +14,46 @@ from ml.common.nn.unet import (
     MPConv,
 )  # magnitute preserving functions/blocks
 
-# class ConvBlock(nn.Module):
-#     def __init__(self, in_channels, out_channels, time_emb_dim):
-#         super().__init__()
-#         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=2, padding="same")
-#         self.norm = nn.GroupNorm(1, out_channels)
-#         self.act = nn.SiLU()
-#         # self.time_mlp = nn.Linear(time_emb_dim, out_channels)
-#         self.time_mlp = nn.Sequential(
-#             nn.Linear(time_emb_dim, time_emb_dim),
-#             nn.SiLU(),
-#             nn.Linear(time_emb_dim, out_channels),
-#             nn.SiLU(),
-#         )
-
-#     def forward(self, x, t_emb):
-#         h = self.conv1(x)
-#         h = self.norm(h)
-#         time_cond = self.time_mlp(t_emb).unsqueeze(-1).unsqueeze(-1)
-#         h = h + time_cond
-#         return self.act(h)
-
-# class SimpleUNet(nn.Module):
+# class EDMPrecond(nn.Module):
 #     """
-#     Simple unet for initial tests.
+#     Wrapper for the raw nn, outputs D_theta (denoiser prediction), see Karras et al. (2022).
 #     """
-#     def __init__(self, in_channels=3, time_emb_dim=32, base_channels=32, channel_mults=[1, 2, 4]):
-#         super().__init__()
-#         self.in_channels = in_channels
 
-#         self.time_embedding = nn.Sequential(
-#             TimeEmbedding(time_emb_dim),
-#             nn.Linear(time_emb_dim, time_emb_dim),
-#             nn.SiLU(),
-#         )
-#         self.conv_in = ConvBlock(in_channels, base_channels*channel_mults[0], time_emb_dim)
-#         self.down1 = ConvBlock(base_channels*channel_mults[0], base_channels*channel_mults[1], time_emb_dim)
-#         self.bottleneck = ConvBlock(base_channels*channel_mults[1], base_channels*channel_mults[2], time_emb_dim)
-#         self.up1 = ConvBlock(base_channels*channel_mults[2] + base_channels*channel_mults[1], base_channels*channel_mults[1], time_emb_dim)
-#         self.up2 = ConvBlock(base_channels*channel_mults[1] + base_channels*channel_mults[0], base_channels*channel_mults[0], time_emb_dim)
-#         self.conv_out = nn.Conv2d(base_channels*channel_mults[0], in_channels, kernel_size=1)
+#     def __init__(self, net, sigma_data=1.0, img_shape=None):
+#         super().__init__()
+#         self.net = net  # raw nn (F_theta)
+#         self.sigma_data = sigma_data
+#         self.img_shape = tuple(img_shape)
+#         self.n_features = np.prod(self.img_shape)
 
 #     def forward(self, x, sigma, class_labels=None, augment_labels=None):
-#         t_emb = self.time_embedding(sigma)
+#         x = x.to(torch.float32)
 
-#         # Encoder
-#         x1 = self.conv_in(x, t_emb)
-#         x2 = self.down1(x1, t_emb)
+#         sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
 
-#         # Bottleneck
-#         bn = self.bottleneck(x2, t_emb)
+#         #original formulation, has problems with predicting low variance, usually too low on high level features
+#         c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
+#         c_out = sigma * self.sigma_data / (sigma**2 + self.sigma_data**2).sqrt()
+#         c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
+#         c_noise = 0.2 * sigma.flatten().sqrt()
 
-#         # Decoder
-#         up1_in = torch.cat([bn, x2], dim=1)
-#         u1 = self.up1(up1_in, t_emb)
+#         F_x = self.net(c_in * x, c_noise, class_labels, augment_labels)
 
-#         up2_in = torch.cat([u1, x1], dim=1)
-#         u2 = self.up2(up2_in, t_emb)
+#         D_x = c_skip * x + c_out * F_x
+#         #----------------------------------------------------------------------------------------
 
-#         output = self.conv_out(u2)
-#         return output
+#         #raw network test
+#         # D_x = self.net(x, sigma.flatten(), class_labels, augment_labels)
+#         #----------------------------------------------------------------------------------------
 
+#         #simple net 1
+#         # c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
+#         # c_noise = 0.2 * sigma.flatten().sqrt()
+#         # F_x = self.net(c_in * x, c_noise, class_labels, augment_labels)
 
+#         # D_x = x - sigma * F_x
+#         #----------------------------------------------------------------------------------------
+#         return D_x
 class EDMPrecond(nn.Module):
     """
     Wrapper for the raw nn, outputs D_theta (denoiser prediction), see Karras et al. (2022).
@@ -83,40 +61,40 @@ class EDMPrecond(nn.Module):
 
     def __init__(self, net, sigma_data=1.0, img_shape=None):
         super().__init__()
-        self.net = net  # raw nn (F_theta)
+        self.net = net
         self.sigma_data = sigma_data
+        # These are no longer used for shape, but we keep them for compatibility
         self.img_shape = tuple(img_shape)
         self.n_features = np.prod(self.img_shape)
 
     def forward(self, x, sigma, class_labels=None, augment_labels=None):
+        # x is now assumed to be in the correct shape for the network, e.g., [B, 1, 4, 4]
         x = x.to(torch.float32)
+        batch_size = x.shape[0]
 
+        if sigma.ndim == 0:
+            # If sigma is a scalar, expand it to match the batch size
+            sigma = sigma.expand(batch_size)
+            
+        # Ensure sigma matches the actual batch size of x
+        if sigma.shape[0] != batch_size:
+            sigma = sigma[:batch_size]
+
+        # Reshape sigma for broadcasting with 4D tensor x
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
 
-        #original formulation, has problems with variance, usually too low on high level features
         c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
         c_out = sigma * self.sigma_data / (sigma**2 + self.sigma_data**2).sqrt()
         c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
-        c_noise = 0.2 * sigma.flatten().sqrt()
+        c_noise = 0.25 * sigma.log().flatten()
 
         F_x = self.net(c_in * x, c_noise, class_labels, augment_labels)
 
         D_x = c_skip * x + c_out * F_x
-        #----------------------------------------------------------------------------------------
-
-        #raw network test
-        # D_x = self.net(x, sigma.flatten(), class_labels, augment_labels)
-        #----------------------------------------------------------------------------------------
-
-        #simple net 1
-        # c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
-        # c_noise = 0.2 * sigma.flatten().sqrt()
-        # F_x = self.net(c_in * x, c_noise, class_labels, augment_labels)
-
-        # D_x = x - sigma * F_x
-        #----------------------------------------------------------------------------------------
+        
+        # The output D_x has the same 4D shape as the input x, as expected by the loss function.
         return D_x
-
+    
     def round_sigma(self, sigma):
         return torch.as_tensor(sigma)
 

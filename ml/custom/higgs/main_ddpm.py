@@ -24,7 +24,7 @@ from process_higgs_dataset import (
 )
 from ml.common.utils.utils import PFEMACallback
 from ml.common.utils.loggers import timeit, log_num_trainable_params, setup_logger
-from ml.common.nn.unet import UNet1D, NoisePredictorUNet, VarPredictorUNet, UNet1Dconv
+from ml.common.nn.unet import UNet1D, NoisePredictorUNet, VarPredictorUNet, UNet1DconvDDPM
 
 # custom imports
 from ml.diffusion.ddpm.model import NoisePredictorUNet
@@ -65,7 +65,7 @@ def main(cfg: DictConfig) -> None:
     if experiment_conf["run_name"] is None:
         experiment_conf["run_name"] = time.asctime(time.localtime())
 
-    experiment_name = "iDDPM"
+    experiment_name = "DDPM"
 
     data_conf = cfg.data_config
     model_conf = cfg.model_config
@@ -121,13 +121,18 @@ def main(cfg: DictConfig) -> None:
     # model = VarPredictorUNet(data_dim=data_conf["input_dim"],
     #     **model_conf["network"], )
     
-    model = UNet1D(
+    # model = UNet1D(
+    #     data_dim=data_conf["input_dim"],
+    #     **model_conf["network"],
+    # )
+
+    model = UNet1DconvDDPM(
         data_dim=data_conf["input_dim"],
         **model_conf["network"],
     )
 
     logging.info("Done model setup.")
-    log_num_trainable_params(model, unit="k")
+    log_num_trainable_params(model, unit="M")
 
     # callbacks
     ckpt_cb = ModelCheckpoint(
@@ -180,7 +185,7 @@ def main(cfg: DictConfig) -> None:
         enable_progress_bar=bool(experiment_conf["enable_progress_bar"]),
     )
 
-    module_name = "iddpm2"
+    module_name = "ddpm"
 
     if module_name == "ddpm":
         ddpm_L_module = DDPMModule(
@@ -194,7 +199,7 @@ def main(cfg: DictConfig) -> None:
 
         model_name = f"{model_conf['model_name']}_ddpm_model"
 
-        print("Starting training.")
+        logging.info("Starting training.")
         trainer.fit(ddpm_L_module, dm)
 
         register_from_checkpoint(trainer, ddpm_L_module, model_name=model_name)

@@ -1,20 +1,27 @@
-model_name: unet1d_EDMnoEMA
-img_shape: [2, 3, 3] #inchannels, w, h
+model_name: Dunet_EDMnoEMA
+img_shape: [1, 4, 4] #inchannels, w, h
 
-network: 
-  # in_channels: 2
-  # time_emb_dim: 32
-  # base_channels: 16
-  # channel_mults: [1, 2]
-  # use_attention_at_level: [False, True]
+# network: 
+#   # in_channels: 2
+#   # time_emb_dim: 32
+#   # base_channels: 16
+#   # channel_mults: [1, 2]
+#   # use_attention_at_level: [False, True]
 
-  base_dim: 512
-  depth: 3
-  time_emb_dim: 64
+#   base_dim: 512  #settings for the mlp net
+#   depth: 3  
+#   time_emb_dim: 64
 
-  # base_ch: 64
-  # depth: 4
-  # time_emb_dim: 64
+network:
+  # Parameters for the DhariwalUNet architecture
+  img_resolution: 4       # Image resolution is now a power of two
+  in_channels: 1          # Number of input channels
+  out_channels: 1         # Number of output channels
+  model_channels: 128     # Base channel count
+  channel_mult: [1, 2]    # Multipliers for each resolution level (4x4 -> 2x2)
+  num_blocks: 2           # Number of residual blocks per level
+  attn_resolutions: [4]   # Apply attention at the 4x4 resolution
+
 loss_fn:
   P_mean: -1.2
   P_std: 1.2

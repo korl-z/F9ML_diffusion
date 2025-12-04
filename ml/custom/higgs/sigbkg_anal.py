@@ -300,8 +300,8 @@ if __name__ == "__main__":
     
     # Initialize analysis with your trained classifiers
     analysis = SigBkgAnalysis(
-        mc_classifier_uri="models:/BinaryClassifier_sigbkg_gauss_rank_best6/1",
-        ml_classifier_uri="models:/BinaryClassifier_1m_c_sigbkg_gauss_rank_best6/1",
+        mc_classifier_uri="models:/BinaryClassifier_sigbkg_gauss_rank_best6/2",
+        ml_classifier_uri="models:/BinaryClassifier_full_sigbkg_gauss_rank_best6/1",
         device="cpu"
     )
     
