@@ -10,8 +10,9 @@ plt.rcParams.update(
 roc_data_list = {
         # "UNet DDPM S":  r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\data\c2st\roc_data_BinaryClassifier_unet1d_ddpm_model_c2st_gen_model_all_v2.csv",
         # "UNet DDPM XL": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\data\c2st\roc_data_BinaryClassifier_unet1d_ddpm_model_c2st_gen_model_all_v6.csv",
-        # "EDM no EMA": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\data\c2st\roc_data_BinaryClassifier_unet1d_EDMnoEMA_model_c2st_gen_model_all_v1.csv",
-        # "EDM2":       r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\data\c2st\roc_data_BinaryClassifier_unet1d_EDM2_model_c2st_gen_model_all_v1.csv",
+        "EDM no EMA": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\data\c2st\roc_data_BinaryClassifier_unet1d_EDMnoEMA_model_c2st_gen_model_all_v1.csv",
+        "EDM2":       r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\data\c2st\roc_data_BinaryClassifier_unet1d_EDM2_model_c2st_gen_model_all_v1.csv",
+        "EDM xl": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\data\c2st\roc_data_BinaryClassifier_unet1D_EDM_s_model_c2st_gen_model_all_v2.csv",
         # "EDM simple": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\data\c2st\roc_data_BinaryClassifier_unet1dconv_EDMsimple_model_c2st_gen_model_all_v1.csv",
         # "EDM raw":    r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\data\c2st\roc_data_BinaryClassifier_unet1d_EDMraw_model_c2st_gen_model_all_v1.csv",
         # "EDM simple": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\data\c2st\roc_data_BinaryClassifier_unet1d_EDMraw_model_c2st_gen_model_all_v2.csv",
@@ -49,8 +50,8 @@ plt.grid(True, alpha=0.3)
 plt.tight_layout()
 
 output_dir = Path(r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\plots")
-output_path = output_dir / "roc_curves_comparison_VPVE.pdf"
-plt.savefig(output_path, bbox_inches='tight')
+output_path = output_dir / "roc_curves_comparison_EDM2.png"
+plt.savefig(output_path, bbox_inches='tight', dpi=300)
 print(f"\nPlot saved to: {output_path}")
 
 plt.show()

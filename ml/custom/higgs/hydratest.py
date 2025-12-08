@@ -235,6 +235,7 @@ def main2(cfg):
         # "UNet DDPM XL": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\HIGGS\HIGGS_generated_unet1d_ddpm_model6_6.npy",
         "EDM no EMA": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1d_EDMnoEMA_model1_1.npy",
         "EDM2": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1d_EDM2_model1_1.npy",
+        "EDM xl": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1D_EDM_s_model2_2.npy",
         # "EDM simple": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1dconv_EDMsimple_model1_1.npy",
         # "EDM raw": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1d_EDMraw_model1_1.npy",
         # "EDM simple": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1d_EDMraw_model2_2.npy",
@@ -330,7 +331,7 @@ def main2(cfg):
         
     plt.tight_layout(pad=1.0)
     output_dir = Path(r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\plots")
-    output_path = output_dir / "EDM_gen_data_ratio.pdf"
+    output_path = output_dir / "EDM_gen2_data_ratio.pdf"
     plt.savefig(output_path, bbox_inches='tight')
     plt.show()
 
