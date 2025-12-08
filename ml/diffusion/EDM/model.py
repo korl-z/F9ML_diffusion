@@ -14,46 +14,6 @@ from ml.common.nn.unet import (
     MPConv,
 )  # magnitute preserving functions/blocks
 
-# class EDMPrecond(nn.Module):
-#     """
-#     Wrapper for the raw nn, outputs D_theta (denoiser prediction), see Karras et al. (2022).
-#     """
-
-#     def __init__(self, net, sigma_data=1.0, img_shape=None):
-#         super().__init__()
-#         self.net = net  # raw nn (F_theta)
-#         self.sigma_data = sigma_data
-#         self.img_shape = tuple(img_shape)
-#         self.n_features = np.prod(self.img_shape)
-
-#     def forward(self, x, sigma, class_labels=None, augment_labels=None):
-#         x = x.to(torch.float32)
-
-#         sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
-
-#         #original formulation, has problems with predicting low variance, usually too low on high level features
-#         c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
-#         c_out = sigma * self.sigma_data / (sigma**2 + self.sigma_data**2).sqrt()
-#         c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
-#         c_noise = 0.2 * sigma.flatten().sqrt()
-
-#         F_x = self.net(c_in * x, c_noise, class_labels, augment_labels)
-
-#         D_x = c_skip * x + c_out * F_x
-#         #----------------------------------------------------------------------------------------
-
-#         #raw network test
-#         # D_x = self.net(x, sigma.flatten(), class_labels, augment_labels)
-#         #----------------------------------------------------------------------------------------
-
-#         #simple net 1
-#         # c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
-#         # c_noise = 0.2 * sigma.flatten().sqrt()
-#         # F_x = self.net(c_in * x, c_noise, class_labels, augment_labels)
-
-#         # D_x = x - sigma * F_x
-#         #----------------------------------------------------------------------------------------
-#         return D_x
 class EDMPrecond(nn.Module):
     """
     Wrapper for the raw nn, outputs D_theta (denoiser prediction), see Karras et al. (2022).
@@ -61,40 +21,41 @@ class EDMPrecond(nn.Module):
 
     def __init__(self, net, sigma_data=1.0, img_shape=None):
         super().__init__()
-        self.net = net
+        self.net = net  # raw nn (F_theta)
         self.sigma_data = sigma_data
-        # These are no longer used for shape, but we keep them for compatibility
         self.img_shape = tuple(img_shape)
         self.n_features = np.prod(self.img_shape)
 
     def forward(self, x, sigma, class_labels=None, augment_labels=None):
-        # x is now assumed to be in the correct shape for the network, e.g., [B, 1, 4, 4]
         x = x.to(torch.float32)
-        batch_size = x.shape[0]
 
-        if sigma.ndim == 0:
-            # If sigma is a scalar, expand it to match the batch size
-            sigma = sigma.expand(batch_size)
-            
-        # Ensure sigma matches the actual batch size of x
-        if sigma.shape[0] != batch_size:
-            sigma = sigma[:batch_size]
-
-        # Reshape sigma for broadcasting with 4D tensor x
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
 
+        #original formulation, has problems with predicting low variance, usually too low on high level features
         c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
         c_out = sigma * self.sigma_data / (sigma**2 + self.sigma_data**2).sqrt()
         c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
-        c_noise = 0.25 * sigma.log().flatten()
+        # c_noise = 0.2 * sigma.flatten().sqrt()
+        c_noise = sigma.flatten().log() / 4.0
 
         F_x = self.net(c_in * x, c_noise, class_labels, augment_labels)
 
         D_x = c_skip * x + c_out * F_x
-        
-        # The output D_x has the same 4D shape as the input x, as expected by the loss function.
+        #----------------------------------------------------------------------------------------
+
+        #raw network test
+        # D_x = self.net(x, sigma.flatten(), class_labels, augment_labels)
+        #----------------------------------------------------------------------------------------
+
+        #simple net 1
+        # c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
+        # c_noise = 0.2 * sigma.flatten().sqrt()
+        # F_x = self.net(c_in * x, c_noise, class_labels, augment_labels)
+
+        # D_x = x - sigma * F_x
+        #----------------------------------------------------------------------------------------
         return D_x
-    
+
     def round_sigma(self, sigma):
         return torch.as_tensor(sigma)
 
@@ -121,14 +82,14 @@ class EDMPrecond(nn.Module):
         ) ** rho
         t_steps = torch.cat([self.round_sigma(t_steps), torch.zeros_like(t_steps[:1])])
 
-        # Main sampling loop.
+        # main sampling loop.
         x_next = latents.to(torch.float64) * t_steps[0]
         for i, (t_cur, t_next) in enumerate(
             zip(t_steps[:-1], t_steps[1:])
         ):  # 0, ..., N-1
             x_cur = x_next
 
-            # Increase noise temporarily
+            # increase noise temporarily
             gamma = (
                 min(S_churn / num_steps, np.sqrt(2) - 1)
                 if S_min <= t_cur <= S_max
@@ -137,12 +98,12 @@ class EDMPrecond(nn.Module):
             t_hat = self.round_sigma(t_cur + gamma * t_cur)
             x_hat = x_cur + (t_hat**2 - t_cur**2).sqrt() * S_noise * randn_like(x_cur)
 
-            # Euler step.
+            # euler step.
             denoised = self(x_hat, t_hat).to(torch.float64)
             d_cur = (x_hat - denoised) / t_hat
             x_next = x_hat + (t_next - t_hat) * d_cur
 
-            # Apply 2nd order correction.
+            # spply 2nd order correction.
             if i < num_steps - 1:
                 denoised = self(x_next, t_next).to(torch.float64)
                 d_prime = (x_next - denoised) / t_next

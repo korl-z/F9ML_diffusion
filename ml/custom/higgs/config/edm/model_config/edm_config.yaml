@@ -1,38 +1,39 @@
-model_name: Dunet_EDMnoEMA
-img_shape: [1, 4, 4] #inchannels, w, h
+model_name: unet1D_EDM_xxl
+img_shape: [2, 3, 3] #inchannels, w, h
 
-# network: 
-#   # in_channels: 2
-#   # time_emb_dim: 32
-#   # base_channels: 16
-#   # channel_mults: [1, 2]
-#   # use_attention_at_level: [False, True]
+network: 
+  # in_channels: 2
+  # time_emb_dim: 32
+  # base_channels: 16
+  # channel_mults: [1, 2]
+  # use_attention_at_level: [False, True]
 
-#   base_dim: 512  #settings for the mlp net
-#   depth: 3  
-#   time_emb_dim: 64
+  base_dim: 1024  #settings for the mlp net
+  depth: 4  
+  time_emb_dim: 256
 
-network:
-  # Parameters for the DhariwalUNet architecture
-  img_resolution: 4       # Image resolution is now a power of two
-  in_channels: 1          # Number of input channels
-  out_channels: 1         # Number of output channels
-  model_channels: 128     # Base channel count
-  channel_mult: [1, 2]    # Multipliers for each resolution level (4x4 -> 2x2)
-  num_blocks: 2           # Number of residual blocks per level
-  attn_resolutions: [4]   # Apply attention at the 4x4 resolution
 
 loss_fn:
-  P_mean: -1.2
-  P_std: 1.2
+  P_mean: -0.4
+  P_std: 1.0
+
+# sampler: #use this for standard stohastic sampling
+#   num_steps: 128
+#   sigma_min: 0.002
+#   sigma_max: 80.0
+#   rho: 7.0
+#   S_churn: 40 #adds stohasticity if > 0
+#   S_min: 0.4 #use det. steps at low noise levels
+#   S_max: 50 #where the det. path is turned into stohastic (det. sampling at high noise levels)
+#   S_noise: 1.003 #noise multiplier for gaussian
 
 sampler:
-  num_steps: 128
+  num_steps: 64
   sigma_min: 0.002
   sigma_max: 80.0
   rho: 7.0
-  S_churn: 40 #adds stohasticity if > 0
-  S_min: 0.4 #use det. steps at low noise levels
-  S_max: 50 #where the det. path is turned into stohastic (det. sampling at high noise levels)
-  S_noise: 1.003 #noise multiplier for gaussian
+  S_churn: 0 #adds stohasticity if > 0
+  S_min: 0 #use det. steps at low noise levels
+  S_max: 0 #where the det. path is turned into stohastic (det. sampling at high noise levels)
+  S_noise: 1.0 #noise multiplier for gaussian
 

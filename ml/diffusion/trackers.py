@@ -70,7 +70,7 @@ class DDPMTracker(Tracker, Callback):
     @handle_plot_exception
     def gen_vs_ref_plot(self):
         D = self.generated.shape[1]
-        ncols = 4
+        ncols = 6
         nrows = int(np.ceil(D / ncols))
 
         fig, axs = plt.subplots(nrows, ncols, figsize=(4 * ncols, 4 * nrows))

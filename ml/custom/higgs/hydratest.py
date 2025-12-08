@@ -106,25 +106,28 @@ def main(cfg):
     # ver = 1
 
     select_models = [
-        "unet1d_ddpm_model",
+        # "unet1d_ddpm_model",
 
-        "unet1d_VP_model",
-        "MPtinyunet_VE_model",
-        "unet1d_EDM2_model",
-        "unet1d_EDMnoEMA_model",
-        "unet1d_ddpm_model",
+        # "unet1d_VP_model",
+        # "MPtinyunet_VE_model",
+        # "unet1d_EDM2_model",
+        # "unet1d_EDMnoEMA_model",
+        # "unet1d_ddpm_model",
 
-        "unet1d_EDMraw_model",
-        "unet1d_EDMraw_model",
+        # "unet1d_EDMraw_model",
+        # "unet1d_EDMraw_model",
         
-        "unet1dconv_EDMsimple_model",
-        "unet1dconv_VP_model",
+        # "unet1dconv_EDMsimple_model",
+        # "unet1dconv_VP_model",
+
+        "unet1D_EDM_s_model",
     ]
     versions = [
-                2, 
-                3, 3, 1, 1, 6, #v1 EDM noEMA
-                1, 2, #no. 2 is EDMsimple
-                1, 1 #1dconv models
+                # 2, 
+                # 3, 3, 1, 1, 6, #v1 EDM noEMA
+                # 1, 2, #no. 2 is EDMsimple
+                # 1, 1, #1dconv models
+                2
                 ]
     
     N = 1000000

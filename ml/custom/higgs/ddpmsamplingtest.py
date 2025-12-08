@@ -110,9 +110,9 @@ def main(cfg):
     inv_real = scalers["cont"][0][1].inverse_transform(real[:, idx])
     
     #pick model name and version
-    model_name = "unet1d_ddpm_model"
+    model_name = "unet1D_EDM_s_model"
     ver = 2
-    N = 1000
+    N = 1000000
 
     #Generate data file
     file_dir, file_name = get_generated_data(

@@ -27,7 +27,7 @@ class TimeEmbedding(nn.Module):
 
 class TimeEmbedding2(nn.Module):
     """
-    Standard sinusoidal embedding, using log(t+1) for stability.
+    no log since c_noise uses log already
     """
     def __init__(self, dim):
         super().__init__()
@@ -40,8 +40,7 @@ class TimeEmbedding2(nn.Module):
         half_dim = self.dim // 2
         embeddings = math.log(10000) / (half_dim - 1)
         embeddings = torch.exp(torch.arange(half_dim, device=t.device) * -embeddings)
-        # Using log(t + 1) for numerical stability at t=0
-        embeddings = torch.log(t + 1).unsqueeze(1) * embeddings.unsqueeze(0)
+        embeddings = t.unsqueeze(1) * embeddings.unsqueeze(0)
         embeddings = torch.cat((embeddings.sin(), embeddings.cos()), dim=-1)
         return embeddings
     

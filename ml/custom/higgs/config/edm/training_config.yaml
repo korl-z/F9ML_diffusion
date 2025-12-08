@@ -5,7 +5,7 @@ training_config:
 
   ema_halflife_kimg: 500
   ema_rampup_ratio: 0.09
-  std: 0.15  #use with PFEMA
+  std: 0.10  #use with PFEMA
 
   compile: False  
   optimizer:

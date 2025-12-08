@@ -1,4 +1,4 @@
-model_name: unet1dconv_VP
+model_name: unet1dconv_VP_XL
 img_shape: [2, 3, 3] #inchannels, w, h
 M: 2000 #number of noise levels for training
 
@@ -13,7 +13,7 @@ network:
   # depth: 4
   # time_emb_dim: 32
 
-  base_ch: 128
+  base_dim: 128
   depth: 4
   time_emb_dim: 64
   
