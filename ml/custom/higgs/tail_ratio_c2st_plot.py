@@ -39,8 +39,8 @@ class DensityRatioPlotter:
         self.ml_test_data = np.load(self.data_dir / "ml_test_data.npy")
         
         # Load histogram data
-        self.hist_data = pd.read_csv(self.data_dir / "density_ratio_data.csv")
-        self.metadata = pd.read_csv(self.data_dir / "density_ratio_data_metadata.csv")
+        self.hist_data = pd.read_csv(self.data_dir / "density_ratio_dataDDPM.csv")
+        self.metadata = pd.read_csv(self.data_dir / "density_ratio_dataDDPM_metadata.csv")
         
         print(f"Loaded data:")
         print(f"  MC events: {len(self.mc_test_data)}")
@@ -243,26 +243,17 @@ if __name__ == "__main__":
     
     plotter.print_summary()
     
-    # Create output directory for plots
     output_dir = Path(r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\plots")
     output_dir.mkdir(exist_ok=True, parents=True)
     
-    # # Plot Figure 14: Density ratio distribution
-    # print("\nGenerating Figure 14...")
-    # plotter.plot_density_ratio_distribution(
-        # save_path=output_dir / "figure14_density_ratio.pdf"
-    # )
-    
-    # Plot Figure 15: Kinematic distributions for tail events
+    print("\nGenerating Figure 14...")
+    plotter.plot_density_ratio_distribution(
+        save_path=output_dir / "figure14_density_ratioDDPM.png"
+    )
+
     print("\nGenerating Figure 15...")
     plotter.plot_tail_kinematic_distributions(
-        save_path=output_dir / "figure15_tail_kinematics.pdf"
+        save_path=output_dir / "figure15_tail_kinematicsDDPM.png"
     )
-    
-    # # Alternative version (optional)
-    # print("\nGenerating Figure 15 alternative...")
-    # plotter.plot_tail_kinematic_distributions_alternative(
-    #     save_path=output_dir / "figure15_tail_kinematics_alt.pdf"
-    # )
     
     print(f"\nAll plots saved to: {output_dir}")

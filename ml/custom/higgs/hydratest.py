@@ -233,18 +233,17 @@ def main2(cfg):
     generated_files_to_plot = {
         # "UNet DDPM S": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\HIGGS\HIGGS_generated_unet1d_ddpm_model2_2.npy",
         # "UNet DDPM XL": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\HIGGS\HIGGS_generated_unet1d_ddpm_model6_6.npy",
-        "EDM no EMA": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1d_EDMnoEMA_model1_1.npy",
-        "EDM2": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1d_EDM2_model1_1.npy",
-        "EDM xl": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1D_EDM_s_model2_2.npy",
+        # "EDM no EMA": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1d_EDMnoEMA_model1_1.npy",
+        # "EDM2": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1d_EDM2_model1_1.npy",
+        # "EDM xl": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1D_EDM_s_model2_2.npy",
         # "EDM simple": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1dconv_EDMsimple_model1_1.npy",
         # "EDM raw": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1d_EDMraw_model1_1.npy",
         # "EDM simple": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1d_EDMraw_model2_2.npy",
         # "VP": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1d_VP_model3_3.npy",
         # "VE": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_MPtinyunet_VE_model3_3.npy",
-        # "VP conv": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1dconv_VP_model1_1.npy",
+        "VP conv": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1dconv_VP_model1_1b.npy",
     }
     
-    # Load all generated data files and apply the inverse transform
     inverse_generated_data = {}
     for label, path in generated_files_to_plot.items():
         if os.path.exists(path):
@@ -331,8 +330,8 @@ def main2(cfg):
         
     plt.tight_layout(pad=1.0)
     output_dir = Path(r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\plots")
-    output_path = output_dir / "EDM_gen2_data_ratio.pdf"
-    plt.savefig(output_path, bbox_inches='tight')
+    # output_path = output_dir / "EDM_gen2_data_ratio.pdf"
+    # plt.savefig(output_path, bbox_inches='tight')
     plt.show()
 
 if __name__ == "__main__":

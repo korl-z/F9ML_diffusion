@@ -28,7 +28,7 @@ for ax_idx, (distance_key, distance_label) in enumerate(distances.items()):
     ax = axs[ax_idx]
     
     # Read CSV
-    csv_path = data_dir / f"{distance_key}_data.csv"
+    csv_path = data_dir / f"{distance_key}_data2.csv"
     df = pd.read_csv(csv_path)
     
     # Get feature names and baseline
@@ -94,7 +94,7 @@ for ax_idx, (distance_key, distance_label) in enumerate(distances.items()):
 
 # Save output
 data_dirout = r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\plots"
-output_path = data_dir / "distances_combined.pdf"
+output_path = data_dir / "distances_combined2.png"
 plt.savefig(output_path, bbox_inches='tight', dpi=300)
 print(f"Plot saved to: {output_path}")
 

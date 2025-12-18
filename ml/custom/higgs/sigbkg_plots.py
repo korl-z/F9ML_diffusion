@@ -10,7 +10,7 @@ plt.rcParams.update(
 set1_list = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#f781bf", "#999999"]
 
 
-def plot_score_distributions_from_data(data_dir, score_cut=0.5, save_path=None):
+def plot_score_distributions_from_data(data_dir, score_cut=0.55, save_path=None):
     """
     Plot Figure 16: Classifier score distributions with ratio subplot.
     
@@ -26,7 +26,7 @@ def plot_score_distributions_from_data(data_dir, score_cut=0.5, save_path=None):
     data_dir = Path(data_dir)
     
     # Load histogram data
-    df = pd.read_csv(data_dir / "score_distributions_data.csv")
+    df = pd.read_csv(data_dir / "score_distributions_dataEDM.csv")
     
     bin_centers = df['bin_centers'].values
     bin_edges_left = df['bin_edges_left'].values
@@ -108,8 +108,8 @@ def plot_roc_curves_from_data(data_dir, save_path=None):
     data_dir = Path(data_dir)
     
     # Load ROC data
-    df_roc = pd.read_csv(data_dir / "roc_curves_data.csv")
-    metadata = pd.read_csv(data_dir / "roc_metadata.csv")
+    df_roc = pd.read_csv(data_dir / "roc_curves_dataEDM.csv")
+    metadata = pd.read_csv(data_dir / "roc_metadataEDM.csv")
     
     fpr_mc = df_roc['fpr_mc'].values
     tpr_mc = df_roc['tpr_mc'].values
@@ -153,10 +153,8 @@ if __name__ == "__main__":
     output_dir = Path(r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\plots")
     output_dir.mkdir(exist_ok=True, parents=True)
     
-    # Figure 16: Score distributions with ratio
-    print("Creating Figure 16: Classifier Score Distributions")
     plot_score_distributions_from_data(
         data_dir,
-        score_cut=0.5,
-        save_path=output_dir / "f16_score_distributions.pdf"
+        score_cut=0.57,
+        save_path=output_dir / "f16_score_distributionsEDM.png"
     )
