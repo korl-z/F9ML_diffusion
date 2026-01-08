@@ -32,6 +32,8 @@ MODEL_MAP = {
     
     "unet1dconv_EDMsimple_model1": "EDM-simple-conv1d",
     "unet1dconv_VP_model1": "VP-conv1d",
+
+    "unet1D_EDM_s_model2": "EDM-XL-unet1d",
 }
 
 
@@ -487,7 +489,7 @@ def get_sig_bkg_ref(N):
         return_data=True,
         on_train=None,
         cont_rescale_type="none",
-        model_type="flows",
+        model_type="edm",
         use_hold=True,
     )
 

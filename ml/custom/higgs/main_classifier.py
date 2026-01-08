@@ -27,6 +27,7 @@ from ml.custom.higgs.process_higgs_dataset import (
     HIGGSFeatureSelector,
     HIGGSNpyProcessor,
     CatGeneratedFull,
+    CatGeneratedLimited,
 )
 
 
@@ -37,8 +38,12 @@ def main(config):
     if experiment_conf["run_name"] is None:
         experiment_conf["run_name"] = time.asctime(time.localtime())
 
-    gen_model_name = "unet1d_ddpm_model"
-    gen_model_ver = 6
+    # gen_model_name = "unet1d_ddpm_model"
+    # gen_model_ver = 6
+    
+    # gen_model_name = "unet1D_EDM_s_model" #actaully the xl model, I forgot to change the name
+    # gen_model_ver = 2
+
     experiment_name = "sigbkgClassifier"
 
     data_conf = config.data_config
@@ -81,10 +86,11 @@ def main(config):
     else:
         pre = Preprocessor(**data_conf["preprocessing"])
 
-    # cat_gen = CatGeneratedFull(gen_model_name, gen_model_ver, cat_label=0)
-
+    # cat_gen = CatGeneratedFull(gen_model_name, gen_model_ver, cat_label=0) #for full generated dataset
+    # cat_gen = CatGenerated(gen_model_name, gen_model_ver, cat_label=0) #for partially ML gen dataset
     # chainer = ProcessorChainer(npy_proc, f_sel, pre, cat_gen)
-    chainer = ProcessorChainer(npy_proc, f_sel, pre)
+
+    chainer = ProcessorChainer(npy_proc, f_sel, pre) #for MC only classifier
 
     # create a data module
     dm = HiggsDataModule(chainer, **data_conf["dataloader_config"])
@@ -132,7 +138,7 @@ def main(config):
     else:
         model_name = f"{model_conf['model_name']}_model"
 
-    model_name += "_best6"
+    model_name += "_MC"
     # run training
     trainer.fit(classifier, dm)
 

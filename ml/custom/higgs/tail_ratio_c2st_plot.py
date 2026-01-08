@@ -102,7 +102,7 @@ class DensityRatioAnalysis:
         return r_x
     
     def plot_density_ratio_distribution(self, mc_data, ml_data, 
-                                       tail_cut_low=0.97, tail_cut_high=1.02,
+                                       tail_cut_low=0.971, tail_cut_high=1.0125,
                                        save_path=None,
                                        save_data_path=None):
         """
@@ -121,7 +121,7 @@ class DensityRatioAnalysis:
 
         print(f"Fraction in tails - MC: {mc_tail_frac*100:.2f}%, ML: {ml_tail_frac*100:.2f}%")
 
-        bin_range = (0.94, 1.06)  # Focus on the region of interest
+        bin_range = (0.94, 1.06) 
         all_r_x = np.concatenate([r_x_mc, r_x_ml])
 
         # Filter to reasonable range for histogram
@@ -223,28 +223,26 @@ class DensityRatioAnalysis:
 
 if __name__ == "__main__":
     registered_model_name = "BinaryClassifier_unet1d_ddpm_model_c2st_gen_model_all"
-    model_version = 14 
+    # registered_model_name = "BinaryClassifier_unet1D_EDM_s_model_c2st_gen_model_all"
+    model_version = 14#, 1 for EDM
     c2st_model_uri = f"models:/{registered_model_name}/{model_version}"
 
-    # Load and process data correctly (matching C2ST training pipeline)
     print("Processing MC test data...")
     
-    # Initialize processors with correct arguments
     npy_proc = HIGGSNpyProcessor(
         data_dir="/data0/korlz/f9-ml/ml/data/HIGGS/",
         base_file_name="HIGGS_data",
         hold_mode=True,
-        use_hold=True,  # Use partition 2 (holdout/test set)
+        use_hold=True,  # Use holdout/test set
     )
     
-    # Get npy_file from processor
     npy_file, features = npy_proc()
     
     f_sel = HIGGSFeatureSelector(
         file_path=npy_file,
         features=features,
         drop_types=["uni", "disc"],
-        on_train="bkg",  # Only background
+        on_train="bkg",  
     )
     
     pre = Preprocessor(
@@ -260,8 +258,9 @@ if __name__ == "__main__":
     label_mask[label_idx] = False
     mc_test_data = mc_test_data[:, label_mask]
     
-    # Load generated data (already preprocessed, no label)
+    # generated data 
     ml_test_data = np.load("/data0/korlz/f9-ml/ml/data/HIGGS/HIGGS_generated_unet1d_ddpm_model6_6.npy")
+    # ml_test_data = np.load("/data0/korlz/f9-ml/ml/data/HIGGS/HIGGS_generated_unet1D_EDM_s_model2_2.npy")
     
     print(f"MC test data shape: {mc_test_data.shape}")
     print(f"ML test data shape: {ml_test_data.shape}")
@@ -279,8 +278,8 @@ if __name__ == "__main__":
     r_x_mc, r_x_ml = density_analysis.plot_density_ratio_distribution(
         mc_test_data, 
         ml_test_data,
-        save_path=str(output_dir / "density_ratio_distribution.png"),
-        save_data_path=str(output_dir / "density_ratio_data.csv")
+        save_path=str(output_dir / "density_ratio_distributionDDPM.png"),
+        save_data_path=str(output_dir / "density_ratio_dataDDPM.csv")
     )
     
     tail_mask_ml, tail_data_ml = density_analysis.get_tail_events(ml_test_data, r_x_ml)

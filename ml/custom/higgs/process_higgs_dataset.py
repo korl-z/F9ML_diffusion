@@ -216,7 +216,7 @@ class CatGenerated:
 
         # BPK
         N_mc_org = len(data_label)  # why other?
-        N_mc = 3 * N_mc_org // 4  # // 2 originally
+        N_mc = 2 * N_mc_org // 4  # // 2 originally #3/4 originally
         N_gen = N_mc_org - N_mc  # equal originally
 
         sampler = GenModelSampler(self.model_name, versions=self.ver,save_dir=self.save_dir, file_name=self.file_name)

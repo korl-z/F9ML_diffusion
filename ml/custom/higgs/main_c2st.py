@@ -79,16 +79,20 @@ def main(cfg):
         # "unet1d_EDMraw_model",
         
         # "unet1dconv_EDMsimple_model",
-        # "unet1dconv_VP_model",
 
-        "unet1D_EDM_s_model"
+        "unet1dconv_VP_model",
+
+        # "unet1D_EDM_s_model",
+        # "unet1D_EDM_xxl_model"
     ]
     versions = [
                 # 2, 6,
                 # 3, 3, 1, 1, #v1 EDM noEMA
                 # 1, 2, #no. 2 is EDMsimple
-                # 1, 1, #1dconv models
-                2
+                # 1, #EDM simple
+                1, #1dconv VP
+                # 2
+                # 1
                 ]
 
     all_results = {} 
@@ -97,7 +101,7 @@ def main(cfg):
         print(f"STARTING C2ST FOR MODEL: {model_name}, VERSION: {ver}")
         print("="*50 + "\n")
 
-        N = 1000000
+        N = 2500000
 
         data_conf["feature_selection"]["n_data"] = 2 * N
 

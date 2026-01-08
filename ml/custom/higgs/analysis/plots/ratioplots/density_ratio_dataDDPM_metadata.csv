@@ -1,0 +1,2 @@
+tail_cut_low,tail_cut_high,mc_tail_frac,ml_tail_frac,mc_r_x_min,mc_r_x_max,ml_r_x_min,ml_r_x_max,mc_extreme_count,ml_extreme_count
+0.971,1.0125,0.015002,0.014121,0.9388531446456909,1.0472837686538696,0.009999999776482582,100.0,0,41

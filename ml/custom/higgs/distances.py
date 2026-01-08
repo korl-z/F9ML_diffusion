@@ -114,7 +114,6 @@ class DistancesTest:
         # make sure all samples have the same number of events
         samples = equalize_counts_to_ref(samples)
 
-        # CHECK: Are values in physical range?
         print("\n=== Value ranges after rescale ===")
         print(f"Ref min/max: {bkg_ref_data.min():.3f} / {bkg_ref_data.max():.3f}")
         for key, val in samples.items():
@@ -254,7 +253,7 @@ if __name__ == "__main__":
 
         "unet1d_VP_model",
         "MPtinyunet_VE_model",
-        "unet1d_EDM2_model",
+        # "unet1d_EDM2_model",
         "unet1d_EDMnoEMA_model",
 
         # "unet1d_EDMraw_model",
@@ -262,13 +261,16 @@ if __name__ == "__main__":
         
         # "unet1dconv_EDMsimple_model",
         "unet1dconv_VP_model",
+
+        "unet1D_EDM_s_model",
     ]
     versions = [
                 2, 6,
-                3, 3, 1, 1, #v1 EDM noEMA
+                3, 3, 1, #v1 EDM noEMA
                 # 1, 2, #no. 2 is EDMsimple
                 # 1, 
-                1 #1dconv models
+                1, #1dconv models
+                2, #EDM xl
                 ]
 
     distances_test = DistancesTest(
