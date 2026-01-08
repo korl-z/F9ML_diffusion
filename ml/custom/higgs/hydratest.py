@@ -29,10 +29,16 @@ from ml.custom.higgs.process_higgs_dataset import (
 )
 from ml.common.utils.plot_utils import add_data_mc_ratio
 
-plt.rcParams.update(
-    {"text.usetex": True, "font.family": "Helvetica", "font.size": 10}
-)
-set1_list = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#f781bf", "#999999"]
+plt.rcParams.update({"text.usetex": True, "font.family": "Helvetica", "font.size": 10})
+set1_list = [
+    "#e41a1c",
+    "#377eb8",
+    "#4daf4a",
+    "#984ea3",
+    "#ff7f00",
+    "#f781bf",
+    "#999999",
+]
 
 features_list = [
     r"lepton $p_T$",
@@ -55,6 +61,7 @@ features_list = [
     r"$m_{wwbb}$",
 ]
 
+
 def get_generated_data(select_model, N, chunks=20, sample_i=0, ver=-1):
     model_dct = {select_model: get_model(select_model, ver=ver).eval()}
 
@@ -64,7 +71,9 @@ def get_generated_data(select_model, N, chunks=20, sample_i=0, ver=-1):
     model_dct[f"{select_model}{ver}"] = model_dct.pop(select_model)
     select_model = f"{select_model}{ver}"
 
-    _, npy_file_names = sample_from_models(model_dct, N, ver=ver, chunks=chunks, resample=1, return_npy_files=True)
+    _, npy_file_names = sample_from_models(
+        model_dct, N, ver=ver, chunks=chunks, resample=1, return_npy_files=True
+    )
 
     file_path = npy_file_names[select_model][sample_i]
     head, tail = os.path.split(file_path)
@@ -72,6 +81,7 @@ def get_generated_data(select_model, N, chunks=20, sample_i=0, ver=-1):
     tail = tail.split(".")[0]
 
     return head, tail
+
 
 @hydra.main(config_path="config/edm/", config_name="main_config", version_base=None)
 def main(cfg):
@@ -100,7 +110,7 @@ def main(cfg):
 
     chainer = ProcessorChainer(npy_proc, f_sel, pre)
 
-    real, selection, scalers = chainer()   
+    real, selection, scalers = chainer()
 
     idx = selection[selection["type"] != "label"].index
     inv_real = scalers["cont"][0][1].inverse_transform(real[:, idx])
@@ -118,7 +128,7 @@ def main(cfg):
 
     # # --- Generate data file ---
     # file_dir, file_name = get_generated_data(
-        # select_model=model_name, N=N, chunks=10, ver=ver
+    # select_model=model_name, N=N, chunks=10, ver=ver
     # )
 
     # logging.info(f"Using S_churn = {model_conf['sampler']['S_churn']}")
@@ -141,7 +151,9 @@ def main(cfg):
     nrows = int(np.ceil(D / ncols))
 
     fig1, axs = plt.subplots(nrows, ncols, figsize=(4 * ncols, 4 * nrows))
-    fig1.subplots_adjust(hspace=0.55, wspace=0.2, left=0.03, right=0.98, top=0.97, bottom=0.1)
+    fig1.subplots_adjust(
+        hspace=0.55, wspace=0.2, left=0.03, right=0.98, top=0.97, bottom=0.1
+    )
 
     ax_flat = np.array(axs).reshape(-1)
 
@@ -155,13 +167,13 @@ def main(cfg):
         y = inv_gen[:, feat_idx]
         bin_edges = np.histogram_bin_edges(x, bins=50)
 
-        real_counts, _ = np.histogram(x, bins=bin_edges) 
-        gen_counts, _  = np.histogram(y, bins=bin_edges) 
+        real_counts, _ = np.histogram(x, bins=bin_edges)
+        gen_counts, _ = np.histogram(y, bins=bin_edges)
 
         sum_real = real_counts.sum()
         sum_gen = gen_counts.sum()
 
-        #division by 0 errors
+        # division by 0 errors
         if sum_gen == 0:
             gen_counts_scaled = np.full_like(gen_counts, 1e-8, dtype=float)
         else:
@@ -169,19 +181,37 @@ def main(cfg):
             gen_counts_scaled = gen_counts.astype(float) * scale_factor
 
         real_yerr = np.sqrt(real_counts.astype(float))
-        gen_yerr  = np.sqrt(gen_counts.astype(float)) * (scale_factor if sum_gen != 0 else 1.0)
+        gen_yerr = np.sqrt(gen_counts.astype(float)) * (
+            scale_factor if sum_gen != 0 else 1.0
+        )
 
         real_counts_safe = real_counts.astype(float).copy()
         zero_mask = real_counts_safe == 0
         if np.any(zero_mask):
             real_counts_safe[zero_mask] = 1e-8
-            real_yerr[zero_mask] = 1e-8 #if no MC data
-
+            real_yerr[zero_mask] = 1e-8  # if no MC data
 
         import seaborn as sns
-        sns.histplot(x, bins=bin_edges, ax=ax, stat="density", color="gray", alpha=0.3, label="MC")
 
-        ax.hist(y, bins=bin_edges, density=True, histtype="step", lw=1.0, color="blue", label="ML")
+        sns.histplot(
+            x,
+            bins=bin_edges,
+            ax=ax,
+            stat="density",
+            color="gray",
+            alpha=0.3,
+            label="MC",
+        )
+
+        ax.hist(
+            y,
+            bins=bin_edges,
+            density=True,
+            histtype="step",
+            lw=1.0,
+            color="blue",
+            label="ML",
+        )
         ax.set_yscale("log")
         ax.legend()
         ax.set_xlabel(features_list[feat_idx])
@@ -189,10 +219,10 @@ def main(cfg):
         add_data_mc_ratio(
             ax=ax,
             bin_edges=bin_edges,
-            data_hist=gen_counts_scaled.astype(float),    
-            data_yerr=gen_yerr.astype(float),          
-            mc_hists=real_counts_safe[None, :].astype(float),  
-            mc_yerrs=real_yerr[None, :].astype(float),         
+            data_hist=gen_counts_scaled.astype(float),
+            data_yerr=gen_yerr.astype(float),
+            mc_hists=real_counts_safe[None, :].astype(float),
+            mc_yerrs=real_yerr[None, :].astype(float),
             ylim=(0.5, 1.5),
             lower_ylabel="ML / MC",
         )
@@ -201,7 +231,6 @@ def main(cfg):
         ax_flat[j].axis("off")
     plt.tight_layout()
     plt.show()
-
 
 
 @hydra.main(config_path="config/edm/", config_name="main_config", version_base=None)
@@ -218,8 +247,7 @@ def main2(cfg):
     torch.set_float32_matmul_precision("high")
     L.seed_everything(experiment_conf["seed"], workers=True)
 
-    # This part is still necessary to get the scalers for the inverse transform
-    logging.info("Processing real data to get scalers...")
+    logging.info("MC gen data processing")
     npy_proc = HIGGSNpyProcessor(**data_conf["input_processing"])
     f_sel = HIGGSFeatureSelector(npy_proc.npy_file, **data_conf["feature_selection"])
     pre = Preprocessor(**data_conf["preprocessing"])
@@ -230,7 +258,7 @@ def main2(cfg):
     inv_real = scalers["cont"][0][1].inverse_transform(real[:, idx])
     logging.info("Finished processing real data.")
 
-    generated_files_to_plot = {
+    file_dirs_arr = {
         # "UNet DDPM S": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\HIGGS\HIGGS_generated_unet1d_ddpm_model2_2.npy",
         # "UNet DDPM XL": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\HIGGS\HIGGS_generated_unet1d_ddpm_model6_6.npy",
         # "EDM no EMA": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1d_EDMnoEMA_model1_1.npy",
@@ -243,36 +271,40 @@ def main2(cfg):
         # "VE": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_MPtinyunet_VE_model3_3.npy",
         "VP conv": r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ml\data\higgs_gen_pc14\HIGGS\HIGGS_generated_unet1dconv_VP_model1_1b.npy",
     }
-    
+
     inverse_generated_data = {}
-    for label, path in generated_files_to_plot.items():
+    for label, path in file_dirs_arr.items():
         if os.path.exists(path):
             logging.info(f"Loading '{label}' from: {path}")
             gen_np = np.load(path)
-            inverse_generated_data[label] = scalers["cont"][0][1].inverse_transform(gen_np[:, idx])
+            inverse_generated_data[label] = scalers["cont"][0][1].inverse_transform(
+                gen_np[:, idx]
+            )
         else:
             logging.warning(f"File not found, skipping: {path}")
 
     D = inv_real.shape[1]
     ncols = 6
     nrows = int(np.ceil(D / ncols))
-    
-    h=1
-    fig1, axs = plt.subplots(nrows, ncols, figsize=(ncols * 3.47412, 3.47412 * h * nrows))
-    fig1.subplots_adjust(hspace=0.55, wspace=0.2, left=0.03, right=0.98, top=0.97, bottom=0.1)
+
+    h = 1
+    fig1, axs = plt.subplots(
+        nrows, ncols, figsize=(ncols * 3.47412, 3.47412 * h * nrows)
+    )
+    fig1.subplots_adjust(
+        hspace=0.55, wspace=0.2, left=0.03, right=0.98, top=0.97, bottom=0.1
+    )
 
     ax_flat = np.array(axs).reshape(-1)
-    
+
     model_colors = {}
     for i, model_name in enumerate(inverse_generated_data.keys()):
         model_colors[model_name] = set1_list[i % len(set1_list)]
 
-
     for feat_idx in range(D):
         ax = ax_flat[feat_idx]
         x = inv_real[:, feat_idx]
-        
-        # Use a common set of bins for all histograms on this axis
+
         bin_edges = np.histogram_bin_edges(x, bins=50)
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
@@ -280,8 +312,16 @@ def main2(cfg):
         densities_mc = counts_mc / (len(x) * np.diff(bin_edges))
         errors_mc = np.sqrt(counts_mc) / (len(x) * np.diff(bin_edges))
 
-        # Plot the real data
-        sns.histplot(x, bins=bin_edges, ax=ax, stat="density", color="gray", alpha=0.3, label="MC")
+        # MC plot
+        sns.histplot(
+            x,
+            bins=bin_edges,
+            ax=ax,
+            stat="density",
+            color="gray",
+            alpha=0.3,
+            label="MC",
+        )
 
         mc_hists = []
         mc_yerrs = []
@@ -293,13 +333,26 @@ def main2(cfg):
             densities_gen = counts_gen / (len(y) * np.diff(bin_edges))
             errors_gen = np.sqrt(counts_gen) / (len(y) * np.diff(bin_edges))
 
-            # Plot as step histogram
-            ax.hist(y, bins=bin_edges, density=True, histtype="step", 
-                   lw=1.5, color=model_colors[label], label=label)
-            # Add error band
-            ax.fill_between(bin_centers, densities_gen - errors_gen, densities_gen + errors_gen,
-                           alpha=0.2, color=model_colors[label], step='mid')
-        
+            # plot step hist
+            ax.hist(
+                y,
+                bins=bin_edges,
+                density=True,
+                histtype="step",
+                lw=1.5,
+                color=model_colors[label],
+                label=label,
+            )
+            # error band
+            ax.fill_between(
+                bin_centers,
+                densities_gen - errors_gen,
+                densities_gen + errors_gen,
+                alpha=0.2,
+                color=model_colors[label],
+                step="mid",
+            )
+
             mc_hists.append(densities_gen)
             mc_yerrs.append(errors_gen)
             mc_colors_list.append(model_colors[label])
@@ -319,20 +372,20 @@ def main2(cfg):
             mc_yerrs,
             mc_colors_list,
             ylim=(0.5, 1.5),
-            lower_ylabel="ML / MC"
+            lower_ylabel="ML / MC",
         )
-        
+
         axin.set_xlabel(features_list[feat_idx], fontsize=10)
-    
-    # Turn off any unused subplots
+
     for j in range(D, len(ax_flat)):
         ax_flat[j].axis("off")
-        
+
     plt.tight_layout(pad=1.0)
     output_dir = Path(r"C:\Users\Uporabnik\Documents\IJS-F9\korlz\ppt\plots")
     # output_path = output_dir / "EDM_gen2_data_ratio.pdf"
     # plt.savefig(output_path, bbox_inches='tight')
     plt.show()
+
 
 if __name__ == "__main__":
     main2()
