@@ -27,7 +27,7 @@ class TimeEmbedding(nn.Module):
 
 class TimeEmbedding2(nn.Module):
     """
-    no log since c_noise uses log already
+    no log rescale since c_noise uses log already
     """
     def __init__(self, dim):
         super().__init__()

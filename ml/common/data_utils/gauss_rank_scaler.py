@@ -186,13 +186,24 @@ if __name__ == "__main__":
     from scipy.stats import norm
     from ml.custom.higgs.analysis.utils import run_chainer
 
+    plt.rcParams.update({"text.usetex": True, "font.family": "Libertinus Serif", "font.size": 10})
+    set1_list = [
+        "#e41a1c",
+        "#377eb8",
+        "#4daf4a",
+        "#984ea3",
+        "#ff7f00",
+        "#f781bf",
+        "#999999",
+    ]
+
     data, selection, scalers = run_chainer(cont_rescale_type="gauss_rank", on_train="bkg", n_data=10**5)
 
     idx = selection[selection["type"] != "label"].index
 
     inv_data = scalers["cont"][0][1].inverse_transform(data[:, idx])
 
-    fig, axs = plt.subplots(6, 3, figsize=(12, 16))
+    fig, axs = plt.subplots(3, 6, figsize=(16, 6))
     axs = axs.flatten()
 
     labels = selection[selection["type"] != "label"]["feature"].values
@@ -200,16 +211,16 @@ if __name__ == "__main__":
     real, selection_r, scalers_r = run_chainer(cont_rescale_type=None, on_train="bkg", n_data=10**5)
 
     for i, (ax, label) in enumerate(zip(axs, labels)):
-        ax.hist(data[:, i], bins=100, histtype="step", lw=1.5, label="scaled", range=(-3, 3), density=True)
-        ax.hist(inv_data[:, i], bins=100, histtype="step", lw=1.5, label="original - inverse",  range=(-3, 3), density=True)
-        ax.hist(real[:, i], bins=100, lw=1.5, label="original",  range=(-3, 3), density=True, alpha=0.5)
+        ax.hist(data[:, i], bins=100, label="scaled", range=(-3, 3), density=True, color=set1_list[0], alpha=0.2)
+        ax.hist(inv_data[:, i], bins=100, histtype="step", lw=1.5, label="original - inverse",  range=(-3, 3), density=True, color=set1_list[1], alpha=1)
+        ax.hist(real[:, i], bins=100, lw=1.5, label="original",  range=(-3, 3), density=True, color=set1_list[2], alpha=0.2)
         ax.set_xlabel(label)
 
         x = np.linspace(-3, 3, 100)
-        ax.plot(x, norm.pdf(x,0,1), '-k', label="N(0, 1)")
+        ax.plot(x, norm.pdf(x,0,1), '-k', label="N(0, 1)") #test if var is ok 
 
 
-    axs[0].legend()
+    axs[13].legend(loc=2)
 
     fig.tight_layout()
-    plt.savefig("scaler-test")
+    plt.savefig("scaler-test.png", dpi=300)

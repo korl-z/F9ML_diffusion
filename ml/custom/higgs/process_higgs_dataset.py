@@ -235,7 +235,7 @@ class CatGenerated:
 
 
 class CatGeneratedFull:
-    """Replace ALL MC background with ML-generated background."""
+    """replace ALL MC background with ML bkg"""
     def __init__(self, model_name, ver=-1, cat_label=0, save_dir="/data0/korlz/f9-ml/ml/data/HIGGS/", file_name="HIGGS_generated"):
         self.model_name = model_name
         self.ver = ver
@@ -251,12 +251,12 @@ class CatGeneratedFull:
         
         # split by label
         label_mask = data[:, label_idx] == self.cat_label
-        data_label = data[label_mask]      # MC background (will be replaced)
+        data_label = data[label_mask]      # MC background
         data_other = data[~label_mask]     # MC signal 
         
         # 100% MC bkg
         N_mc_org = len(data_label)
-        N_gen = N_mc_org  # Replace ALL MC background
+        N_gen = N_mc_org  # replace ALL MC bkg
         
         # sample from gen model
         sampler = GenModelSampler(
@@ -279,7 +279,7 @@ class CatGeneratedFull:
         return shuffle(cat)
     
 class CatGeneratedLimited:
-    """Use limited ML-generated background, downsample signal to match."""
+    """downsample signal to match sizes"""
     
     def __init__(self, model_name, ver=-1, cat_label=0, N_gen_available=1000000,
                  save_dir="/data0/korlz/f9-ml/ml/data/HIGGS/", file_name="HIGGS_generated"):
@@ -296,7 +296,7 @@ class CatGeneratedLimited:
     def cat_gen(self, data, selection):
         label_idx = selection[selection["type"] == "label"].index[0]
         
-        # Split by label
+        # label spliz
         label_mask = data[:, label_idx] == self.cat_label
         data_label = data[label_mask]      # MC background
         data_other = data[~label_mask]     # MC signal
@@ -304,19 +304,16 @@ class CatGeneratedLimited:
         N_mc_bkg_original = len(data_label)
         N_mc_sig_original = len(data_other)
         
-        # Use all available generated samples
+        # use avalible samples 
         N_gen = min(self.N_gen_available, N_mc_bkg_original)
         
-        # Downsample signal to maintain similar background/signal ratio
-        # Original ratio: N_mc_sig / N_mc_bkg
-        # New signal count: N_gen * (N_mc_sig / N_mc_bkg)
+        # downsample if needed
         N_sig_keep = int(N_gen * (N_mc_sig_original / N_mc_bkg_original))
         
-        logging.info(f"Original dataset: {N_mc_bkg_original} bkg + {N_mc_sig_original} sig")
-        logging.info(f"New dataset: {N_gen} ML bkg + {N_sig_keep} MC sig")
-        logging.info(f"Ratio preserved: {N_sig_keep/N_gen:.3f} (original: {N_mc_sig_original/N_mc_bkg_original:.3f})")
+        logging.info(f"original data: {N_mc_bkg_original} bkg + {N_mc_sig_original} sig")
+        logging.info(f"new data: {N_gen} ML bkg + {N_sig_keep} MC sig")
         
-        # Sample from generative model
+        # sample if needed
         sampler = GenModelSampler(
             self.model_name,
             versions=self.ver,
@@ -325,14 +322,11 @@ class CatGeneratedLimited:
         )
         data_gen = sampler.sample(N_gen, resample=1)[self.model_name][0]
         
-        # Add label column to generated data
         data_gen_labels = np.ones(len(data_gen)) * self.cat_label
         data_gen = np.insert(data_gen, label_idx, data_gen_labels, axis=1)
         
-        # Downsample signal
         data_sig_subset = data_other[:N_sig_keep]
         
-        # Concatenate
         cat = np.concatenate([data_gen, data_sig_subset], axis=0)
         
         return shuffle(cat)
