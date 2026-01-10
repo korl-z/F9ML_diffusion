@@ -165,7 +165,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-plt.rcParams.update({"text.usetex": True, "font.family": "Helvetica", "font.size": 10})
+plt.rcParams.update({"text.usetex": True, "font.family": "Helvetica", "font.size": 8})
 set1_list = [
     "#e41a1c",
     "#377eb8",
@@ -234,9 +234,9 @@ def plot_score_distributions_from_data(
         score_cut, color="gray", ls=":", lw=1.5, alpha=0.7, label=f"cut={score_cut}"
     )
 
-    ax1.set_ylabel("Density", fontsize=10)
+    ax1.set_ylabel("Density", fontsize=8)
     ax1.set_yscale("log")
-    ax1.legend(fontsize=7, framealpha=0.9, loc="upper center", ncol=2)
+    ax1.legend(fontsize=8, framealpha=0.9, loc="upper center", ncol=2)
     ax1.set_xlim(0, 1)
     ax1.grid(alpha=0.3)
     ax1.set_xticklabels([])
@@ -256,12 +256,12 @@ def plot_score_distributions_from_data(
     ax2.axhline(1.0, color="gray", ls="--", lw=1, alpha=0.5)
     ax2.axvline(score_cut, color="gray", ls=":", lw=1.5, alpha=0.7)
 
-    ax2.set_xlabel("Classifier score", fontsize=10)
-    ax2.set_ylabel("Ratio", fontsize=9)
+    ax2.set_xlabel("Classifier score", fontsize=8)
+    ax2.set_ylabel("Ratio", fontsize=8)
     ax2.set_xlim(0, 1)
     ax2.set_ylim(0.8, 1.2)
     ax2.grid(alpha=0.3)
-    ax2.legend(fontsize=7, framealpha=0.9, loc=2)
+    ax2.legend(fontsize=8, framealpha=0.9, loc=2)
     ax2.tick_params(which="both", direction="in")
 
     plt.tight_layout(pad=0.3, h_pad=0.5)
@@ -282,5 +282,5 @@ if __name__ == "__main__":
         data_dir,
         classifier_name="MC",
         score_cut=0.55,
-        save_path=output_dir / "f16_score_distributionsDDPM.png",
+        save_path=output_dir / "score_distributionsDDPM.pdf",
     )
