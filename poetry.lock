@@ -1939,6 +1939,92 @@ files = [
 all = ["flake8 (>=7.1.1)", "mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2)"]
 
 [[package]]
+name = "iminuit"
+version = "2.32.0"
+description = "Jupyter-friendly Python frontend for MINUIT2 in C++"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "iminuit-2.32.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:0a0bebfc5aa4874cbd66ae3f18f70e1cce537f2b4be524665e061b39866460af"},
+    {file = "iminuit-2.32.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:be39dbe99965d98a11373eb67d9bee8329ffad2e888f7031de1e7b0bfd84a04f"},
+    {file = "iminuit-2.32.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:6afb34720d53326d8f27ff107dddbd35b1ae7fc42bd0cb92ae45e950bc549d3a"},
+    {file = "iminuit-2.32.0-cp310-cp310-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:4b3b8b2a3039f8e4b3f77764dc993e50640a643a3bbddfde9063257cea6a062c"},
+    {file = "iminuit-2.32.0-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:a5ecc1692f0a59ebf89b73bd250535cd54521023d2915136feff17c60d035d4c"},
+    {file = "iminuit-2.32.0-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:df62b0a82af95268c8fb34fd3911905c647c1f5ab23ae7213cebfaddef0e8867"},
+    {file = "iminuit-2.32.0-cp310-cp310-win32.whl", hash = "sha256:920c76692d543340251879353a3dca122a6e50a9b768dd3f9838da213d0f87c9"},
+    {file = "iminuit-2.32.0-cp310-cp310-win_amd64.whl", hash = "sha256:47c26a1e00883e29949b50b3601d731b7d3c1019aafe03f44913049e18a68a3c"},
+    {file = "iminuit-2.32.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:73ee5ead75394c3dc88087b3ab86c7d72e6bf993cd42d4656ac51a175e971635"},
+    {file = "iminuit-2.32.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:dcf2a2a8d3f66b89450fc8494a6734868a6ffb8b72d311c15a4ba6e5b066322e"},
+    {file = "iminuit-2.32.0-cp311-cp311-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:02acccb353e120d22121d3a0bc6681ebc14f7557f676800aa51e4ef7014ebc08"},
+    {file = "iminuit-2.32.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:9a645476edda3efcfebad9fee353605abd122abf550f6ef28c56075c40ecdd4f"},
+    {file = "iminuit-2.32.0-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:e74ce68294d1e0667e4f59d0c9fb088a55fd3a6520cd8dc0e7a2df3e202b16da"},
+    {file = "iminuit-2.32.0-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:6eef1dd82f179122082f134eccf773fc9d5b481ff9baaca2d09840a3226590f2"},
+    {file = "iminuit-2.32.0-cp311-cp311-win32.whl", hash = "sha256:561ecfae249636439c6217b82d31c5279f48ee4a38bb85d14ef23c639cd1e451"},
+    {file = "iminuit-2.32.0-cp311-cp311-win_amd64.whl", hash = "sha256:dd93614b048023791221beb1b48bd00f87a44bcd92daff8667cff1f5a44ee013"},
+    {file = "iminuit-2.32.0-cp311-cp311-win_arm64.whl", hash = "sha256:17cc66bf771eee6a18b273f2d967348424d3aa731fe4431cd589e4d77f0ae960"},
+    {file = "iminuit-2.32.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:38b8baa9cc35d62aa2d7e3ec676423e4fd5120b0e178095a0f3d73d6d36e9e6b"},
+    {file = "iminuit-2.32.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:b4c818abeb0ad1677a336f8caaa5faf9545cfef14be4a9be7cd08c9036e2924b"},
+    {file = "iminuit-2.32.0-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b6bd0bd6f2c9e79675e84036e8305823e1bea8ad9f58cf8588f174be55eefa1b"},
+    {file = "iminuit-2.32.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:91e8a206d82bef31d2ed2b1420a85f8d604c8b03ad1edf2d47d87984bf3d7817"},
+    {file = "iminuit-2.32.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:6b9702617d9c6024ec0f3833ceeb031cddce5c7ec4d4982ad7e7d60c6954abab"},
+    {file = "iminuit-2.32.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:101f21e26d90b766f89f64a1497d70157bb5d5b969a1176fabec3ee8b38a4d56"},
+    {file = "iminuit-2.32.0-cp312-cp312-win32.whl", hash = "sha256:9110b2190557e7f4cbae0eaf79f7b6e69aed68a8c80d0132868a27f0f3846598"},
+    {file = "iminuit-2.32.0-cp312-cp312-win_amd64.whl", hash = "sha256:b996f8f8ae186b761f16b3d163536728de92a451fce8ffb26acede7a23bd0af6"},
+    {file = "iminuit-2.32.0-cp312-cp312-win_arm64.whl", hash = "sha256:3620b39572a3b66aeaf703729905d67b43adfb4051fb174331d090fa97914a6a"},
+    {file = "iminuit-2.32.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:ff549ee0c6f8dc956e3927b63a3edfb8f86c21032fd43e0330c9ec18d2a93bc5"},
+    {file = "iminuit-2.32.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:405ee46b44afea9e6cbbf9b35c606e8414a4acae834ad62ab7fadc09780f491d"},
+    {file = "iminuit-2.32.0-cp313-cp313-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:acef55187be8dc2b31b77278549d4f851489a9405fdeaefca9b6006338cb5cd2"},
+    {file = "iminuit-2.32.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:eadd4350bbf95dd3034a6cfd0da0a5b71909abf2b29faee58841a91905151892"},
+    {file = "iminuit-2.32.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:28a570f0ea4b8b2aca22ee8670cc91a2406d05c08c9e93226fcb46e6f23d843a"},
+    {file = "iminuit-2.32.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:9e41de028b5267356e42478759c5650b868a3fdde736b8398909c0e79dff65aa"},
+    {file = "iminuit-2.32.0-cp313-cp313-win32.whl", hash = "sha256:a66c46c0504b156e7d0bfb0118ce66b1f86e1d6b11f2f8d2f0ada356013828d3"},
+    {file = "iminuit-2.32.0-cp313-cp313-win_amd64.whl", hash = "sha256:720861a28e929a8b65afb4079ebd52a7deaaef3c9cb0896a8eff4a2cada718cb"},
+    {file = "iminuit-2.32.0-cp313-cp313-win_arm64.whl", hash = "sha256:f7bdb1c946b8e12d3214aea61769dde01e0bec88116968dd1ba04a0c56c5e160"},
+    {file = "iminuit-2.32.0-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:c81c345f0465935fa19f5372107ed1f859244f31a8fdf16ab7a9542d65b51abf"},
+    {file = "iminuit-2.32.0-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:2a16b252e61cd6cc70f5c7f0e4aa3c022f66866285755a1daf52919299a2bd88"},
+    {file = "iminuit-2.32.0-cp313-cp313t-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:c648765030f113ef0234a6fc0a226d51fa446a16bc5d6c5f6615ee1bfbf7e610"},
+    {file = "iminuit-2.32.0-cp313-cp313t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:6f1bcec8fbec49242c4bdbfd3657d3d3a4ff673bc673d411f459cd3f401d4b50"},
+    {file = "iminuit-2.32.0-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:d3032ae0bd875e763789456b384f2690a5eae27d6b2ee8ec2229b7d1985c8ea7"},
+    {file = "iminuit-2.32.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:185a6fca41631af288275f19102a434ce63c2b80cbcf1ea5872fea77317d688e"},
+    {file = "iminuit-2.32.0-cp313-cp313t-win32.whl", hash = "sha256:bb40983f128eee0e0806b2fdc1647847cdab9974631a3908cfd4020dca1e00fa"},
+    {file = "iminuit-2.32.0-cp313-cp313t-win_amd64.whl", hash = "sha256:cb7c32520f5c2aff6ef4997086995c152c829b7f16f06749ace58e5f5636c2c6"},
+    {file = "iminuit-2.32.0-cp313-cp313t-win_arm64.whl", hash = "sha256:fc10dbcc10fa3addb78c43df5c4d0b4e69bc6b39b65a743090da39bf8f857d60"},
+    {file = "iminuit-2.32.0-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:90711c15c91c94997a44a10370f5a6da35a2b0f2fe82b7c041d575600b2be452"},
+    {file = "iminuit-2.32.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:4ee574535406cb5480ec05e69bfd9b2b9da14fe884e8c960ff753fc83e9197c4"},
+    {file = "iminuit-2.32.0-cp314-cp314-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:8fe92e2aae65d82366a4b508a0be1630a4e3741640dce5d5490cbeb31db2f63a"},
+    {file = "iminuit-2.32.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:df877a30c9b5ad5636f098c201ddebb80a5e6bedb39df6bce25b9e28d4fab71d"},
+    {file = "iminuit-2.32.0-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:5ca5c29af83645e895cbe3c184411e94fcffdbaa981ce00192ec9958162fb927"},
+    {file = "iminuit-2.32.0-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:1ef88b74f446176ba9456e0a01d390b3f83aca3da186b4b9651e2304a73857fb"},
+    {file = "iminuit-2.32.0-cp314-cp314-win32.whl", hash = "sha256:d0275a0aec2c3f78ed6a0fe6ae9de973569af2de4b4e971ea2d8fe3425d040d9"},
+    {file = "iminuit-2.32.0-cp314-cp314-win_amd64.whl", hash = "sha256:a51e38627084e7a6ad4b41c5860fb7e62cb408d73ec827821c0a846e4705dfdd"},
+    {file = "iminuit-2.32.0-cp314-cp314-win_arm64.whl", hash = "sha256:44c14cd367901faca69abfcadaec07d1bbaf95256e1feb6e97544ea3b9c5a5f1"},
+    {file = "iminuit-2.32.0-cp314-cp314t-macosx_10_15_x86_64.whl", hash = "sha256:a64fc84e85ca230764a6e29be7f9d014ef9a2a78a217c916944118e10a10fcbe"},
+    {file = "iminuit-2.32.0-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:9754186bebfc8cd7bd782bff8cb3ff28d22d4de10b5d815fe8f967014cf1253c"},
+    {file = "iminuit-2.32.0-cp314-cp314t-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:54bbe740f035ad365d63a106ee92cd66ded92d1e1845a635159b5eedd6ac958a"},
+    {file = "iminuit-2.32.0-cp314-cp314t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:929bbabb4e6e6a459b5c2dd88e0cd16082733a2ac16e1d99f33f135aa71822c6"},
+    {file = "iminuit-2.32.0-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:e2b371f486cc76e394712b9bdb24a075c61bdf3fd4704741ccd74bd056170fd9"},
+    {file = "iminuit-2.32.0-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:bf92d10dbc7c13c12bdaf8d694bd0ebd784d8b5c07b5b62136af7b594b0ef31f"},
+    {file = "iminuit-2.32.0-cp314-cp314t-win32.whl", hash = "sha256:2b38acb7fcb90230108a0175be59bf7cfbc27a86f5b31667a99a6e7091643070"},
+    {file = "iminuit-2.32.0-cp314-cp314t-win_amd64.whl", hash = "sha256:4e16907b0bc808efe193c11fd92b2d73ad119b94bf26f5f245cf6d4c829b5aa9"},
+    {file = "iminuit-2.32.0-cp314-cp314t-win_arm64.whl", hash = "sha256:6eda86f133391f8e19ea585794552626d8368fcfce33a2add786f89819f84751"},
+    {file = "iminuit-2.32.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:00579545c0866ec123be8820aa506da4b5b64857203dc6195dd5917f3552f405"},
+    {file = "iminuit-2.32.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:54956ade7ad19f056965fc875ddbf90ad12de86e72a912e861b8496fd20b9aec"},
+    {file = "iminuit-2.32.0-cp39-cp39-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:cd8736ff4dcf52217cf98d57b45246f943a922d84208545f0999d1054afb14b1"},
+    {file = "iminuit-2.32.0-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:2e0580fd3694959eee3fae755f1f7712b0eeb9b15bf45d8ab44f14f77368eac9"},
+    {file = "iminuit-2.32.0-cp39-cp39-win32.whl", hash = "sha256:55f58b896f0b162a932bc2da9a5f4d852d310bd3622361803af2f1d26237f7f5"},
+    {file = "iminuit-2.32.0-cp39-cp39-win_amd64.whl", hash = "sha256:b43849cf0db32833cb364b2fec4921e991cdeb1164f16af626ebdd027c57e0e7"},
+    {file = "iminuit-2.32.0.tar.gz", hash = "sha256:a32b34d18665959be75ad6bdb1dd80459bb94466c62b455631c00568accdf7d2"},
+]
+
+[package.dependencies]
+numpy = ">=1.21"
+
+[package.extras]
+doc = ["ipykernel", "jax", "jaxlib", "jupyter_client", "nbconvert", "nbformat", "nbsphinx", "pytest-xdist", "sphinx-rtd-theme"]
+test = ["PySide6 ; platform_python_implementation == \"CPython\"", "annotated_types", "boost_histogram", "coverage", "ipykernel ; platform_python_implementation == \"CPython\"", "ipywidgets", "jacobi", "joblib", "matplotlib ; platform_python_implementation == \"CPython\"", "nox", "numba ; platform_python_implementation == \"CPython\"", "numba-stats ; platform_python_implementation == \"CPython\"", "pydantic", "pytest", "pytest-qt ; platform_python_implementation == \"CPython\"", "pytest-xdist", "pytest-xvfb", "resample ; platform_python_implementation == \"CPython\"", "scipy ; platform_python_implementation == \"CPython\"", "tabulate", "unicodeitplus"]
+
+[[package]]
 name = "importlib-metadata"
 version = "8.7.0"
 description = "Read metadata from Python packages"
@@ -2158,12 +2244,27 @@ files = [
 dev = ["build (==1.2.2.post1)", "coverage (==7.5.4) ; python_version < \"3.9\"", "coverage (==7.8.0) ; python_version >= \"3.9\"", "mypy (==1.14.1) ; python_version < \"3.9\"", "mypy (==1.15.0) ; python_version >= \"3.9\"", "pip (==25.0.1)", "pylint (==3.2.7) ; python_version < \"3.9\"", "pylint (==3.3.6) ; python_version >= \"3.9\"", "ruff (==0.11.2)", "twine (==6.1.0)", "uv (==0.6.11)"]
 
 [[package]]
+name = "jsonpatch"
+version = "1.33"
+description = "Apply JSON-Patches (RFC 6902)"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, !=3.6.*"
+groups = ["main"]
+files = [
+    {file = "jsonpatch-1.33-py2.py3-none-any.whl", hash = "sha256:0ae28c0cd062bbd8b8ecc26d7d164fbbea9652a1a3693f3b956c1eae5145dade"},
+    {file = "jsonpatch-1.33.tar.gz", hash = "sha256:9fcd4009c41e6d12348b4a0ff2563ba56a2923a7dfee731d004e212e1ee5030c"},
+]
+
+[package.dependencies]
+jsonpointer = ">=1.9"
+
+[[package]]
 name = "jsonpointer"
 version = "3.0.0"
 description = "Identify specific nodes in a JSON document (RFC 6901)"
 optional = false
 python-versions = ">=3.7"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "jsonpointer-3.0.0-py2.py3-none-any.whl", hash = "sha256:13e088adc14fca8b6aa8177c044e12701e6ad4b28ff10e65f2267a90109c9942"},
     {file = "jsonpointer-3.0.0.tar.gz", hash = "sha256:2b2d729f2091522d61c3b31f82e11870f60b68f43fbc705cb76bf4b832af59ef"},
@@ -2175,7 +2276,7 @@ version = "4.25.1"
 description = "An implementation of JSON Schema validation for Python"
 optional = false
 python-versions = ">=3.9"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "jsonschema-4.25.1-py3-none-any.whl", hash = "sha256:3fba0169e345c7175110351d456342c364814cfcf3b964ba4587f22915230a63"},
     {file = "jsonschema-4.25.1.tar.gz", hash = "sha256:e4a9655ce0da0c0b67a085847e00a3a51449e1157f4f75e9fb5aa545e122eb85"},
@@ -2206,7 +2307,7 @@ version = "2025.9.1"
 description = "The JSON Schema meta-schemas and vocabularies, exposed as a Registry"
 optional = false
 python-versions = ">=3.9"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "jsonschema_specifications-2025.9.1-py3-none-any.whl", hash = "sha256:98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe"},
     {file = "jsonschema_specifications-2025.9.1.tar.gz", hash = "sha256:b540987f239e745613c7a9176f3edb72b832a4ac465cf02712288397832b5e8d"},
@@ -4929,6 +5030,41 @@ files = [
 ]
 
 [[package]]
+name = "pyhf"
+version = "0.7.6"
+description = "pure-Python HistFactory implementation with tensors and autodiff"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "pyhf-0.7.6-py3-none-any.whl", hash = "sha256:01b2401b9fdc53d94fa28256128c4898c380c64f71446f1695580fb18fba349d"},
+    {file = "pyhf-0.7.6.tar.gz", hash = "sha256:d41d9cdce5555863a77a37efd0784ad81d84b817295aa07ebc1cfa5ec50cc78c"},
+]
+
+[package.dependencies]
+click = ">=8.0.0"
+jsonpatch = ">=1.15"
+jsonschema = ">=4.15.0"
+numpy = "*"
+pyyaml = ">=5.1"
+scipy = ">=1.2.0"
+tqdm = ">=4.56.0"
+
+[package.extras]
+all = ["pyhf[backends,contrib,shellcomplete,xmlio]"]
+backends = ["pyhf[jax,minuit,tensorflow,torch]"]
+contrib = ["matplotlib (>=3.0.0)", "requests (>=2.22.0)"]
+develop = ["codemetapy (>=2.3.0)", "nox", "pre-commit", "pyhf[docs,test]", "tbump (>=6.7.0)"]
+docs = ["ipython (!=8.7.0)", "ipywidgets", "jupyterlite-pyodide-kernel (>=0.0.7)", "jupyterlite-sphinx (>=0.8.0)", "jupytext (>=1.14.0)", "nbsphinx (!=0.8.8)", "pyhf[contrib,xmlio]", "sphinx (>=7.0.0)", "sphinx-click", "sphinx-copybutton (>=0.3.2,!=0.5.1)", "sphinx-issues", "sphinx-rtd-theme (>=1.3.0)", "sphinxcontrib-bibtex (>=2.1,<3.0)"]
+jax = ["jax (>=0.2.10)", "jaxlib (>=0.1.61,!=0.1.68)"]
+minuit = ["iminuit (>=2.7.0)"]
+shellcomplete = ["click-completion"]
+tensorflow = ["tensorflow (>=2.7.0) ; platform_machine != \"arm64\"", "tensorflow-macos (>=2.7.0) ; platform_machine == \"arm64\" and platform_system == \"Darwin\"", "tensorflow-probability (>=0.11.0,!=0.20.0)"]
+test = ["graphviz", "ipympl (>=0.3.0)", "jupyter", "papermill (>=2.3.4,<2.4.0)", "pydocstyle", "pyhf[all]", "pytest (>=6.0)", "pytest-benchmark[histogram]", "pytest-console-scripts (>=1.4.0)", "pytest-cov (>=2.5.1)", "pytest-mock", "pytest-mpl", "pytest-socket (>=0.2.0)", "requests-mock (>=1.9.0)", "scikit-hep-testdata (>=0.4.11)", "scrapbook (>=0.5.0,<0.6.0)"]
+torch = ["torch (>=1.10.0)"]
+xmlio = ["uproot (>=4.1.1)"]
+
+[[package]]
 name = "pymdown-extensions"
 version = "10.16.1"
 description = "Extension pack for Python Markdown."
@@ -5291,7 +5427,7 @@ version = "0.36.2"
 description = "JSON Referencing + Python"
 optional = false
 python-versions = ">=3.9"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "referencing-0.36.2-py3-none-any.whl", hash = "sha256:e8699adbbf8b5c7de96d8ffa0eb5c158b3beafce084968e2ea8bb08c6794dcd0"},
     {file = "referencing-0.36.2.tar.gz", hash = "sha256:df2e89862cd09deabbdba16944cc3f10feb6b3e6f18e902f7cc25609a34775aa"},
@@ -5393,7 +5529,7 @@ version = "0.27.1"
 description = "Python bindings to Rust's persistent data structures (rpds)"
 optional = false
 python-versions = ">=3.9"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "rpds_py-0.27.1-cp310-cp310-macosx_10_12_x86_64.whl", hash = "sha256:68afeec26d42ab3b47e541b272166a0b4400313946871cba3ed3a4fc0cab1cef"},
     {file = "rpds_py-0.27.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:74e5b2f7bb6fa38b1b10546d27acbacf2a022a8b5543efb06cfebc72a59c85be"},
@@ -6699,4 +6835,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13"
-content-hash = "3b31e0635f0b557ef784b3501fcc81517db4cad380d9885cb67ebb0375928c31"
+content-hash = "2eac1e283817f5d420d8e7b7a0539ec9d552a96415f6dac5cb8ea04e69d688e4"

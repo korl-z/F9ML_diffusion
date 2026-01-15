@@ -47,6 +47,8 @@ networkx = "3.3"
 hep-ml = "^0.8.0"
 mplhep = "^0.4.1"
 colormaps = "^0.4.2"
+pyhf = "^0.7.6"
+iminuit = "^2.32.0"
 
 [tool.poetry.group.dev.dependencies]
 # jupyter
